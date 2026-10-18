@@ -1,0 +1,846 @@
+/* ==========================================================================
+   MeetWave — Clean, Minimalist & Light Aesthetic
+   Crisp, human-crafted design with soft pastel accents & high clarity
+   Zero gradients, zero dark grading — pure, light & friendly for everyone
+   ========================================================================== */
+
+:root {
+  /* Crisp Light Palette */
+  --bg-main: #f8fafc;        /* Soft cloud white */
+  --bg-surface: #ffffff;     /* Pure white cards */
+  --bg-subtle: #f1f5f9;      /* Gentle slate gray */
+  --bg-hover: #e2e8f0;
+
+  /* Refined Lines & Borders */
+  --border-light: #e2e8f0;
+  --border-focus: #059669;
+
+  /* Fresh & Calming Accent Colors */
+  --emerald-main: #059669;    /* Clean emerald */
+  --emerald-light: #ecfdf5;   /* Very soft mint */
+  --emerald-hover: #047857;
+
+  --danger-red: #ef4444;      /* Clean coral red */
+  --danger-light: #fef2f2;
+  --danger-hover: #dc2626;
+
+  /* Crisp Typography */
+  --text-dark: #0f172a;       /* Deep slate */
+  --text-body: #334155;       /* Readable body text */
+  --text-muted: #64748b;      /* Soft secondary text */
+
+  /* Clean Crisp Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-float: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   1. MINIMALIST TOP BAR
+   ========================================================================== */
+.main-header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-light);
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.brand-title {
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+}
+
+.brand-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--emerald-main);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-badge-pill {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--text-body);
+  font-weight: 500;
+}
+
+.room-badge-pill strong {
+  color: var(--emerald-main);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   2. HERO LANDING VIEW (Light, Clean, Minimal)
+   ========================================================================== */
+#hero-view {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hero-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 24px 32px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--emerald-light);
+  border: 1px solid #d1fae5;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--emerald-main);
+  margin-bottom: 20px;
+}
+
+.hero-text-col h2 {
+  font-size: 2.9rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+.hero-text-col h2 span {
+  color: var(--emerald-main);
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--text-body);
+  line-height: 1.6;
+  margin-bottom: 30px;
+  max-width: 500px;
+}
+
+/* Perks List */
+.human-perks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.perk-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.perk-item:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.perk-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--emerald-light);
+  color: var(--emerald-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+/* Right Column Action Cards */
+.hero-hub-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hub-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 22px;
+  transition: all 0.2s ease;
+}
+
+.hub-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-sm);
+}
+
+.hub-card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.hub-card-title .icon-chip {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--emerald-light);
+  color: var(--emerald-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.hub-card-title h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.hub-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* Minimalist Clean Emerald Button */
+.btn-emerald-cta {
+  width: 100%;
+  background: var(--emerald-main);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.02rem;
+  padding: 14px 22px;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+  transition: all 0.15s ease;
+}
+
+.btn-emerald-cta:hover {
+  background: var(--emerald-hover);
+  transform: translateY(-1px);
+}
+
+.btn-emerald-cta:active {
+  transform: scale(0.98);
+}
+
+/* Join Input Row */
+.code-entry-row {
+  display: flex;
+  gap: 8px;
+}
+
+.code-entry-row input {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 12px 18px;
+  color: var(--text-dark);
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.code-entry-row input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.code-entry-row input:focus {
+  border-color: var(--emerald-main);
+}
+
+.btn-pill-join {
+  background: #1e293b;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.15s ease;
+}
+
+.btn-pill-join:hover {
+  background: var(--emerald-main);
+}
+
+/* ==========================================================================
+   3. "HOW IT WORKS" 3-STEP SECTION
+   ========================================================================== */
+.guide-strip {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-light);
+  padding: 40px 24px;
+}
+
+.guide-wrapper {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.guide-wrapper h3 {
+  text-align: center;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+  color: var(--text-dark);
+}
+
+.guide-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.guide-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.guide-num {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--emerald-light);
+  color: var(--emerald-main);
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border: 1px solid #d1fae5;
+}
+
+.guide-box h4 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-dark);
+}
+
+.guide-box p {
+  font-size: 0.9rem;
+  color: var(--text-body);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   4. IN-CALL STAGE (Clean & Minimalist Light Frame)
+   ========================================================================== */
+#call-view {
+  display: none;
+  height: calc(100vh - 69px);
+  position: relative;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.call-stage-area {
+  flex: 1;
+  position: relative;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#video-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 14px;
+  justify-content: center;
+  align-content: center;
+  transition: all 0.25s ease;
+}
+
+#video-grid.layout-1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  max-width: 1000px;
+  max-height: 700px;
+}
+
+#video-grid.layout-2 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: 1fr;
+}
+
+#video-grid.layout-3,
+#video-grid.layout-4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+#video-grid.layout-5,
+#video-grid.layout-6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+@media (max-width: 768px) {
+  #video-grid.layout-2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  #video-grid.layout-5,
+  #video-grid.layout-6 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+}
+
+/* Video Card in Light Canvas */
+.video-card {
+  position: relative;
+  background: #0f172a;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+}
+
+.video-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  border-radius: var(--radius-md);
+}
+
+.user-tag {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.user-tag svg {
+  fill: var(--emerald-main);
+}
+
+/* Picture in Picture Self Box */
+#local-video-box {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 175px;
+  height: 125px;
+  background: #0f172a;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-float);
+  border: 2px solid var(--emerald-main);
+  z-index: 25;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#local-video-box:hover {
+  transform: scale(1.03);
+}
+
+#local-video-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+#local-video-box .self-label {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  color: #ffffff;
+}
+
+/* Waiting state */
+.waiting-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--bg-surface);
+  border: 2px dashed var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 36px 24px;
+  color: var(--text-body);
+  height: 100%;
+  width: 100%;
+  max-width: 540px;
+  margin: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.waiting-banner h2 {
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.waiting-banner p {
+  font-size: 0.98rem;
+  line-height: 1.55;
+  margin-bottom: 22px;
+  max-width: 420px;
+}
+
+/* ==========================================================================
+   5. MINIMALIST CONTROLS BAR (Light floating dock)
+   ========================================================================== */
+.controls-dock-wrap {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-light);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  z-index: 30;
+}
+
+.controls-pill {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-subtle);
+  padding: 6px 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+}
+
+.ctrl-btn {
+  background: #ffffff;
+  color: var(--text-body);
+  border: 1px solid var(--border-light);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 2px;
+  font-weight: 700;
+  font-size: 0.68rem;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.ctrl-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.ctrl-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.ctrl-btn:active {
+  transform: scale(0.95);
+}
+
+.ctrl-btn.active-green {
+  background: var(--emerald-light);
+  color: var(--emerald-main);
+  border-color: #a7f3d0;
+}
+
+.ctrl-btn.active-green:hover {
+  background: #d1fae5;
+}
+
+.ctrl-btn.inactive-red {
+  background: var(--danger-light) !important;
+  color: var(--danger-red) !important;
+  border-color: #fecaca !important;
+}
+
+.ctrl-btn.btn-hangup {
+  background: var(--danger-red);
+  color: #ffffff;
+  border-color: var(--danger-red);
+  width: 56px;
+  height: 56px;
+}
+
+.ctrl-btn.btn-hangup:hover {
+  background: var(--danger-hover);
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* ==========================================================================
+   6. ALERTS & TOASTS
+   ========================================================================== */
+#alert-banner {
+  display: none;
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger-red);
+  color: #ffffff;
+  padding: 10px 22px;
+  border-radius: var(--radius-md);
+  font-size: 0.94rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-float);
+  z-index: 100;
+  align-items: center;
+  gap: 12px;
+  max-width: 90%;
+  text-align: center;
+}
+
+#alert-banner button {
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+#toast-msg {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text-dark);
+  color: #ffffff;
+  padding: 10px 22px;
+  border-radius: var(--radius-full);
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-float);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-out;
+  z-index: 99;
+}
+
+#toast-msg.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   7. RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 900px) {
+  .hero-container {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-top: 28px;
+  }
+
+  .hero-text-col {
+    text-align: center;
+  }
+
+  .trust-pill {
+    margin: 0 auto 16px auto;
+  }
+
+  .hero-text-col h2 {
+    font-size: 2.3rem;
+  }
+
+  .hero-description {
+    margin: 0 auto 24px auto;
+  }
+
+  .human-perks {
+    max-width: 480px;
+    margin: 0 auto 24px auto;
+  }
+
+  .guide-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .main-header {
+    padding: 10px 16px;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .hero-text-col h2 {
+    font-size: 1.9rem;
+  }
+
+  .human-perks {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-hub-box {
+    padding: 20px 16px;
+  }
+
+  .controls-pill {
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .ctrl-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .ctrl-btn.btn-hangup {
+    width: 50px;
+    height: 50px;
+  }
+
+  .btn-label {
+    display: none;
+  }
+
+  #local-video-box {
+    width: 120px;
+    height: 90px;
+    bottom: 12px;
+    right: 12px;
+  }
+}

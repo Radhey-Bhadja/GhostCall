@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GhostCall — Zero Login Instant Video Calls</title>
+  <meta name="description" content="GhostCall: Instant, private group video calls for friends and family with no logins, accounts, or tracking." />
+  <link rel="icon" type="image/png" href="logo.png" />
+  
+  <!-- Clean Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="app.css" />
+
+  <!-- PeerJS WebRTC Library -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="main-header">
+    <div class="brand-wrap" onclick="exitCallToHero(true)" title="Back to home">
+      <img src="logo.png" alt="GhostCall Logo" class="brand-logo-img" />
+      <div>
+        <div class="brand-title">GhostCall</div>
+        <div class="brand-subtitle"><span class="status-dot"></span> <span id="participant-count-text">Ready to connect</span></div>
+      </div>
+    </div>
+
+    <!-- Active Call Header Elements -->
+    <div class="header-right">
+      <div class="room-badge-pill" id="header-room-pill" style="display: none;">
+        <span>Room:</span>
+        <strong id="display-room-id">------</strong>
+      </div>
+      <button class="btn-pill-join" id="btn-header-share" onclick="copyInviteLink()" style="display: none; padding: 8px 18px;">
+        🔗 Share Link
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification & Permission Banner -->
+  <div id="alert-banner">
+    <span id="alert-text">Please allow Camera and Microphone permissions to talk with your friends.</span>
+    <button onclick="dismissAlert()">Got it</button>
+  </div>
+
+  <!-- =========================================================================
+       HERO WELCOME VIEW (Minimalist, Light & Clean)
+       ========================================================================= -->
+  <main id="hero-view">
+    <div class="hero-container">
+      <!-- Left Column: Friendly Hero Intro -->
+      <div class="hero-text-col">
+        <div class="trust-pill">
+          <span>✨ 100% Free & No Sign-up Ever</span>
+        </div>
+
+        <h2>Video calls made for <span>real people.</span></h2>
+
+        <p class="hero-description">
+          Catch up with family, friends, or workmates straight from your browser. 
+          No passwords to forget, no apps to install, and zero setup hassle.
+        </p>
+
+        <!-- Perks built for everyday comfort -->
+        <div class="human-perks">
+          <div class="perk-item">
+            <div class="perk-icon-wrap">🔒</div>
+            <div>
+              <div style="font-weight:700; color:#0f172a;">Direct & Private</div>
+              <div style="font-size:0.8rem; color:#64748b;">Peer-to-peer mesh</div>
+            </div>
+          </div>
+
+          <div class="perk-item">
+            <div class="perk-icon-wrap">⚡</div>
+            <div>
+              <div style="font-weight:700; color:#0f172a;">1-Click Join</div>
+              <div style="font-size:0.8rem; color:#64748b;">No login or downloads</div>
+            </div>
+          </div>
+
+          <div class="perk-item">
+            <div class="perk-icon-wrap">👵</div>
+            <div>
+              <div style="font-weight:700; color:#0f172a;">Simple for All Ages</div>
+              <div style="font-size:0.8rem; color:#64748b;">Big, clear buttons</div>
+            </div>
+          </div>
+
+          <div class="perk-item">
+            <div class="perk-icon-wrap">💻</div>
+            <div>
+              <div style="font-weight:700; color:#0f172a;">Screen Sharing</div>
+              <div style="font-size:0.8rem; color:#64748b;">Show photos & videos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Instant Action Hub -->
+      <div class="hero-hub-box">
+        <!-- Card 1: Start New Call -->
+        <div class="hub-card">
+          <div class="hub-card-title">
+            <div class="icon-chip">📹</div>
+            <h3>Start an Instant Call</h3>
+          </div>
+          <p>Create a secure call room in 1 second and get a link to send on WhatsApp.</p>
+          <button class="btn-emerald-cta" onclick="createNewRoom()">
+            <span>Start Video Call Now</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42L16.86 11H5v2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Card 2: Join Existing Call -->
+        <div class="hub-card">
+          <div class="hub-card-title">
+            <div class="icon-chip" style="background: #f1f5f9; color: #0f172a;">🔑</div>
+            <h3>Have a Room Code?</h3>
+          </div>
+          <p>Paste an invite link or enter the 6-digit room number from your friend:</p>
+          <div class="code-entry-row">
+            <input type="text" id="input-room-code" placeholder="e.g. 582910" maxlength="35" />
+            <button class="btn-pill-join" onclick="joinExistingRoom()">Join</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3-Step Guide (Super clear for non-technical users) -->
+    <section class="guide-strip">
+      <div class="guide-wrapper">
+        <h3>How It Works — Simple as 1, 2, 3</h3>
+        <div class="guide-cards">
+          <div class="guide-box">
+            <div class="guide-num">1</div>
+            <h4>Tap "Start Video Call"</h4>
+            <p>Your room opens right away in your browser. No signup needed.</p>
+          </div>
+          <div class="guide-box">
+            <div class="guide-num">2</div>
+            <h4>Share on WhatsApp</h4>
+            <p>Copy your room link or 6-digit code and send it to your friends.</p>
+          </div>
+          <div class="guide-box">
+            <div class="guide-num">3</div>
+            <h4>Talk & Enjoy</h4>
+            <p>See each other with crisp video, clear voice, and screen sharing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       ACTIVE VIDEO CALL ROOM VIEW
+       ========================================================================= -->
+  <section id="call-view">
+    <!-- Main Calling Canvas -->
+    <div class="call-stage-area">
+      <!-- Dynamic Grid for Remote Participants -->
+      <div id="video-grid" class="layout-1">
+        <!-- Waiting screen if room is empty -->
+        <div id="waiting-screen" class="waiting-banner">
+          <h2>You are all set! 🎉</h2>
+          <p>No one else is here yet. Click the button below to copy the link and send it to your family or friends on WhatsApp.</p>
+          <button class="btn-emerald-cta" onclick="copyInviteLink()" style="max-width: 280px;">
+            <span>📋 Copy WhatsApp Link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Local Self-View (Your Face) -->
+      <div id="local-video-box" title="Click to enlarge or shrink your preview">
+        <video id="local-video" autoplay playsinline muted></video>
+        <div class="self-label">You</div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls Toolbar -->
+    <footer class="controls-dock-wrap">
+      <div class="controls-pill">
+        <!-- Mic Toggle -->
+        <button class="ctrl-btn active-green" id="btn-mic" onclick="toggleMicrophone()" title="Turn Mic On or Off">
+          <svg id="icon-mic-on" viewBox="0 0 24 24">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
+          </svg>
+          <svg id="icon-mic-off" viewBox="0 0 24 24" style="display:none;">
+            <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
+          </svg>
+          <span class="btn-label" id="label-mic">Mic On</span>
+        </button>
+
+        <!-- Camera Toggle -->
+        <button class="ctrl-btn active-green" id="btn-cam" onclick="toggleCamera()" title="Turn Camera On or Off">
+          <svg id="icon-cam-on" viewBox="0 0 24 24">
+            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+          </svg>
+          <svg id="icon-cam-off" viewBox="0 0 24 24" style="display:none;">
+            <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
+          </svg>
+          <span class="btn-label" id="label-cam">Camera</span>
+        </button>
+
+        <!-- Screen Share -->
+        <button class="ctrl-btn" id="btn-screen" onclick="toggleScreenShare()" title="Share your screen">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+          </svg>
+          <span class="btn-label">Share</span>
+        </button>
+
+        <!-- Invite Link -->
+        <button class="ctrl-btn" onclick="copyInviteLink()" title="Copy room link">
+          <svg viewBox="0 0 24 24">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+          </svg>
+          <span class="btn-label">Link</span>
+        </button>
+
+        <!-- Leave Call -->
+        <button class="ctrl-btn btn-hangup" onclick="leaveCall()" title="Leave this video call">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+          </svg>
+          <span class="btn-label" style="color:#fff;">Leave</span>
+        </button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- Notification Toast -->
+  <div id="toast-msg">✅ Invite link copied! Send it on WhatsApp</div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
