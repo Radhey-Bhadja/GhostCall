@@ -806,16 +806,78 @@ body {
     display: none;
   }
 
+  .hero-container {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 20px;
+  }
+
+  .hero-text-col {
+    order: 1;
+    text-align: center;
+  }
+
   .hero-text-col h2 {
-    font-size: 1.9rem;
+    font-size: 1.85rem;
+    line-height: 1.25;
+    margin-bottom: 10px;
   }
 
-  .human-perks {
-    grid-template-columns: 1fr;
+  .hero-description {
+    font-size: 0.95rem;
+    line-height: 1.45;
+    margin: 0 auto 16px auto;
   }
 
+  /* Show the Call Action Card directly under the intro header */
   .hero-hub-box {
-    padding: 20px 16px;
+    order: 2;
+    padding: 18px 14px;
+    gap: 14px;
+  }
+
+  /* Keep perks below the CTA and formatted as a compact 2-column grid */
+  .human-perks {
+    order: 3;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 4px auto 0 auto;
+    width: 100%;
+  }
+
+  .perk-item {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .perk-item div div:first-child {
+    font-size: 0.85rem;
+  }
+
+  .perk-item div div:last-child {
+    font-size: 0.72rem;
+  }
+
+  .perk-icon-wrap {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  .btn-emerald-cta {
+    padding: 13px 18px;
+    font-size: 0.98rem;
+  }
+
+  .code-entry-row input {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+
+  .btn-pill-join {
+    padding: 0 16px;
+    font-size: 0.88rem;
   }
 
   .controls-pill {
