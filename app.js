@@ -87,6 +87,15 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Watch Enter key on room input
+  if (UI.roomInput) {
+    UI.roomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        joinExistingRoom();
+      }
+    });
+  }
+
   // Otherwise stay on Hero Welcome view
   showHeroView();
 });
@@ -228,23 +237,38 @@ async function initLocalMediaStream() {
 
 // Fallback dummy stream with black canvas and silent audio
 function createFallbackMediaStream() {
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = audioCtx.createOscillator();
-  const dst = osc.connect(audioCtx.createMediaStreamDestination());
-  osc.start();
-  const dummyAudio = dst.stream.getAudioTracks()[0];
-  dummyAudio.enabled = false;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  let dummyAudio;
+  if (AudioContextClass) {
+    try {
+      const audioCtx = new AudioContextClass();
+      const osc = audioCtx.createOscillator();
+      const dst = osc.connect(audioCtx.createMediaStreamDestination());
+      osc.start();
+      dummyAudio = dst.stream.getAudioTracks()[0];
+      dummyAudio.enabled = false;
+      dummyAudio.addEventListener('ended', () => {
+        try { osc.stop(); audioCtx.close(); } catch (e) {}
+      });
+    } catch (e) {
+      console.warn('AudioContext fallback warning:', e);
+    }
+  }
 
   const canvas = document.createElement('canvas');
   canvas.width = 640;
   canvas.height = 480;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#1f2c34';
+  ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const canvasStream = canvas.captureStream(10);
   const dummyVideo = canvasStream.getVideoTracks()[0];
 
-  return new MediaStream([dummyAudio, dummyVideo]);
+  const tracks = [];
+  if (dummyAudio) tracks.push(dummyAudio);
+  if (dummyVideo) tracks.push(dummyVideo);
+
+  return new MediaStream(tracks);
 }
 
 /* ==========================================================================
@@ -870,15 +894,24 @@ function copyInviteLink() {
 }
 
 function fallbackCopy(text) {
-  const temp = document.createElement('input');
+  const temp = document.createElement('textarea');
   temp.value = text;
+  temp.setAttribute('readonly', '');
+  temp.style.position = 'fixed';
+  temp.style.left = '-9999px';
+  temp.style.top = '0';
   document.body.appendChild(temp);
   temp.select();
+  temp.setSelectionRange(0, 99999);
   try {
-    document.execCommand('copy');
-    showToast('✅ Link copied! Send it on WhatsApp');
+    const successful = document.execCommand('copy');
+    if (successful) {
+      showToast('✅ Link copied! Send it on WhatsApp');
+    } else {
+      window.prompt('Copy room link:', text);
+    }
   } catch (e) {
-    prompt('Copy room link:', text);
+    window.prompt('Copy room link:', text);
   }
   document.body.removeChild(temp);
 }
@@ -933,7 +966,7 @@ function exitCallToHero(cleanHash = true) {
 function showAlert(text, isError = true) {
   if (UI.alertBanner && UI.alertText) {
     UI.alertText.textContent = text;
-    UI.alertBanner.style.background = isError ? 'var(--danger-red)' : 'var(--primary-green)';
+    UI.alertBanner.style.background = isError ? 'var(--danger-red)' : 'var(--emerald-main)';
     UI.alertBanner.style.display = 'flex';
   }
 }
