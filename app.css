@@ -438,10 +438,11 @@ body {
    ========================================================================== */
 #call-view {
   display: none;
-  height: calc(100vh - 69px);
+  height: calc(100dvh - 65px);
   position: relative;
   flex-direction: column;
   background: #f8fafc;
+  overflow: hidden;
 }
 
 .call-stage-area {
@@ -452,6 +453,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  min-height: 0;
 }
 
 #video-grid {
@@ -674,35 +676,42 @@ body {
 }
 
 /* ==========================================================================
-   5. MINIMALIST CONTROLS BAR (Light floating dock)
+   5. MINIMALIST CONTROLS BAR (WhatsApp-Style Floating Bottom Dock)
    ========================================================================== */
 .controls-dock-wrap {
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-light);
-  padding: 12px 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
-  z-index: 30;
+  z-index: 40;
+  pointer-events: none;
 }
 
 .controls-pill {
+  pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: var(--bg-subtle);
-  padding: 6px 20px;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 8px 22px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-light);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 }
 
 .ctrl-btn {
-  background: #ffffff;
-  color: var(--text-body);
-  border: 1px solid var(--border-light);
-  width: 52px;
-  height: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
@@ -712,53 +721,56 @@ body {
   gap: 2px;
   font-weight: 700;
   font-size: 0.68rem;
-  transition: all 0.15s ease;
-  box-shadow: var(--shadow-sm);
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .ctrl-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 21px;
+  height: 21px;
   fill: currentColor;
 }
 
 .ctrl-btn:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 .ctrl-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
 }
 
 .ctrl-btn.active-green {
-  background: var(--emerald-light);
-  color: var(--emerald-main);
-  border-color: #a7f3d0;
+  background: var(--emerald-main);
+  color: #ffffff;
+  border-color: #34d399;
+  box-shadow: 0 2px 10px rgba(5, 150, 105, 0.45);
 }
 
 .ctrl-btn.active-green:hover {
-  background: #d1fae5;
+  background: var(--emerald-hover);
 }
 
 .ctrl-btn.inactive-red {
-  background: var(--danger-light) !important;
-  color: var(--danger-red) !important;
-  border-color: #fecaca !important;
+  background: var(--danger-red) !important;
+  color: #ffffff !important;
+  border-color: #f87171 !important;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.45);
 }
 
 .ctrl-btn.btn-hangup {
   background: var(--danger-red);
   color: #ffffff;
-  border-color: var(--danger-red);
-  width: 56px;
-  height: 56px;
+  border-color: #f87171;
+  width: 54px;
+  height: 54px;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5);
 }
 
 .ctrl-btn.btn-hangup:hover {
   background: var(--danger-hover);
-  transform: translateY(-1px) scale(1.03);
+  transform: translateY(-2px) scale(1.04);
 }
 
 /* ==========================================================================
@@ -938,13 +950,19 @@ body {
   }
 
   .controls-pill {
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(15, 23, 42, 0.92);
   }
 
   .ctrl-btn {
     width: 46px;
     height: 46px;
+  }
+
+  .ctrl-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .ctrl-btn.btn-hangup {
@@ -957,9 +975,24 @@ body {
   }
 
   #local-video-box {
-    width: 120px;
-    height: 90px;
-    bottom: 12px;
-    right: 12px;
+    width: 110px;
+    height: 80px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+    border-radius: 12px;
+  }
+
+  .waiting-banner {
+    padding: 24px 16px;
+    margin: 8px auto;
+  }
+
+  .waiting-banner h2 {
+    font-size: 1.3rem;
+  }
+
+  .waiting-banner p {
+    font-size: 0.88rem;
+    margin-bottom: 16px;
   }
 }
