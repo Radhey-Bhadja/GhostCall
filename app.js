@@ -24,6 +24,7 @@ const AppState = {
   currentRoomId: null,
   myPeerId: null,
   isRoomHost: false,
+  isJoiningAsGuest: false,
   peer: null,
 
   localStream: null,
@@ -137,14 +138,15 @@ function showCallView() {
 function createNewRoom() {
   // Generate friendly 6-digit room code
   const randomRoomId = String(Math.floor(100000 + Math.random() * 900000));
-  startVideoCallRoom(randomRoomId);
+  startVideoCallRoom(randomRoomId, false);
 }
 
 // User enters 6-digit code or paste link to join
 function joinExistingRoom() {
   let val = UI.roomInput.value.trim();
   if (!val) {
-    showToast('Please type a 6-digit room code to join');
+    showAlert('Please enter a 6-digit room code to join.', true);
+    showToast('Please type a room code');
     UI.roomInput.focus();
     return;
   }
@@ -160,18 +162,20 @@ function joinExistingRoom() {
   val = val.replace(/[^a-zA-Z0-9_-]/g, '');
 
   if (val.length < 3) {
-    showToast('Room code must be at least 3 characters');
+    showAlert('Invalid room code! Please check the code and try again.', true);
+    showToast('Room code is too short or invalid');
     return;
   }
 
-  startVideoCallRoom(val);
+  startVideoCallRoom(val, true);
 }
 
 /* ==========================================================================
    Room Initialization & Media Setup
    ========================================================================== */
-async function startVideoCallRoom(roomId) {
+async function startVideoCallRoom(roomId, isGuest = false) {
   AppState.currentRoomId = roomId;
+  AppState.isJoiningAsGuest = isGuest;
   window.location.hash = `room-${roomId}`;
   UI.displayRoomId.textContent = roomId;
   showCallView();
@@ -277,7 +281,13 @@ function createFallbackMediaStream() {
 function initPeerMesh() {
   const hostPeerId = `ghostcall-${AppState.currentRoomId}-host`;
 
-  // First, attempt to claim host peer ID
+  if (AppState.isJoiningAsGuest) {
+    // User clicked "Join" or entered a specific room code: verify room exists
+    joinAsMeshGuest(hostPeerId);
+    return;
+  }
+
+  // Otherwise, user clicked "Start Video Call Now" (creating a new room): claim host ID
   AppState.peer = new Peer(hostPeerId, rtcConfiguration);
 
   AppState.peer.on('open', (id) => {
@@ -298,7 +308,7 @@ function initPeerMesh() {
     } else {
       console.error('Peer connection error:', err);
       if (err.type !== 'peer-unavailable') {
-        showAlert('Network note: ' + err.type + '. Retrying...', false);
+        showAlert('Network error: ' + (err.message || err.type), false);
       }
     }
   });
@@ -330,6 +340,15 @@ function joinAsMeshGuest(hostPeerId) {
 
   AppState.peer.on('error', (err) => {
     console.warn('Guest peer error:', err);
+    if (err.type === 'peer-unavailable') {
+      showAlert('❌ Room not found or inactive! Please check the room code.', true);
+      showToast('❌ Room not found or inactive');
+      setTimeout(() => {
+        exitCallToHero(true);
+      }, 1800);
+    } else {
+      showAlert('Connection error: ' + (err.message || err.type), true);
+    }
   });
 }
 
@@ -886,7 +905,7 @@ function copyInviteLink() {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link).then(() => {
-      showToast('✅ Link copied! Send it on WhatsApp');
+      showToast('✅ Link copied to clipboard!');
     }).catch(() => fallbackCopy(link));
   } else {
     fallbackCopy(link);
@@ -906,7 +925,7 @@ function fallbackCopy(text) {
   try {
     const successful = document.execCommand('copy');
     if (successful) {
-      showToast('✅ Link copied! Send it on WhatsApp');
+      showToast('✅ Link copied to clipboard!');
     } else {
       window.prompt('Copy room link:', text);
     }
