@@ -4,14 +4,18 @@
    Zero Database - Zero Accounts - 100% Client-Side
    ========================================================================== */
 
-// 1. Google STUN configuration to traverse NAT / Home Firewalls
+// 1. Multi-provider STUN configuration for reliable firewall traversal & NAT routing
 const rtcConfiguration = {
   config: {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' }
+    ],
+    iceCandidatePoolSize: 10
   }
 };
 
@@ -172,35 +176,51 @@ async function startVideoCallRoom(roomId) {
 }
 
 async function initLocalMediaStream() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: 'user'
-      },
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
+  // Studio-grade audio & sharp video constraints with smart degradation
+  const primaryConstraints = {
+    video: {
+      width: { ideal: 1280, min: 640 },
+      height: { ideal: 720, min: 480 },
+      frameRate: { ideal: 30, min: 15 },
+      facingMode: 'user'
+    },
+    audio: {
+      echoCancellation: { ideal: true },
+      noiseSuppression: { ideal: true },
+      autoGainControl: { ideal: true },
+      sampleRate: { ideal: 48000 },
+      channelCount: { ideal: 1 }
+    }
+  };
 
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(primaryConstraints);
     AppState.localStream = stream;
     UI.localVideo.srcObject = stream;
     dismissAlert();
   } catch (err) {
-    console.warn('Camera/Mic permission note:', err);
-    // Create silent dummy fallback stream so WebRTC connection doesn't break
-    AppState.localStream = createFallbackMediaStream();
-    UI.localVideo.srcObject = AppState.localStream;
+    console.warn('Primary media constraints failed, attempting basic fallback:', err);
+    try {
+      // Graceful fallback for basic or mobile devices
+      const fallbackStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: { echoCancellation: true, noiseSuppression: true }
+      });
+      AppState.localStream = fallbackStream;
+      UI.localVideo.srcObject = fallbackStream;
+      dismissAlert();
+    } catch (fallbackErr) {
+      console.warn('Fallback media failed:', fallbackErr);
+      AppState.localStream = createFallbackMediaStream();
+      UI.localVideo.srcObject = AppState.localStream;
 
-    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-      showAlert('Camera/Microphone access was blocked. Please tap the lock icon in your address bar to allow camera access.', true);
-    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-      showAlert('No camera or microphone found on this device. You can still watch and hear others.', true);
-    } else {
-      showAlert('Could not access media devices: ' + (err.message || 'Unknown error'), true);
+      if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
+        showAlert('Camera/Microphone access was blocked. Tap the lock icon in your address bar to allow access.', true);
+      } else if (fallbackErr.name === 'NotFoundError' || fallbackErr.name === 'DevicesNotFoundError') {
+        showAlert('No camera or microphone found. You can still watch and hear others.', true);
+      } else {
+        showAlert('Could not access media devices: ' + (fallbackErr.message || 'Unknown error'), true);
+      }
     }
   }
 }
@@ -298,6 +318,9 @@ function bindPeerListeners() {
       : AppState.localStream;
 
     incomingCall.answer(streamToSend);
+
+    // Apply adaptive bitrate and smooth framerate parameters to peer connection
+    configureCallParameters(incomingCall);
 
     incomingCall.on('stream', (remoteStream) => {
       renderRemoteVideoTile(incomingCall.peer, remoteStream);
@@ -433,6 +456,8 @@ function establishMediaCall(remotePeerId) {
   const call = AppState.peer.call(remotePeerId, streamToSend);
   if (!call) return;
 
+  configureCallParameters(call);
+
   call.on('stream', (remoteStream) => {
     renderRemoteVideoTile(remotePeerId, remoteStream);
   });
@@ -448,6 +473,83 @@ function establishMediaCall(remotePeerId) {
 
   AppState.peerCalls.set(remotePeerId, call);
   updateParticipantsDisplay();
+  dynamicallyAdjustBitrates();
+}
+
+/**
+ * Optimizes WebRTC RTP senders for smooth lag-free performance,
+ * prioritizing balanced framerate & resolution under varying network conditions.
+ */
+function configureCallParameters(call) {
+  if (!call || !call.peerConnection) return;
+
+  const pc = call.peerConnection;
+
+  // Listen for connection state changes to automatically recover
+  pc.addEventListener('iceconnectionstatechange', () => {
+    if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+      console.warn(`ICE connection issue with ${call.peer}:`, pc.iceConnectionState);
+      if (typeof pc.restartIce === 'function') {
+        try { pc.restartIce(); } catch (e) {}
+      }
+    }
+  });
+
+  // Apply bitrate settings once connection is active
+  setTimeout(() => {
+    tunePeerSenders(pc);
+  }, 1000);
+}
+
+function tunePeerSenders(pc) {
+  if (!pc || !pc.getSenders) return;
+
+  // Dynamically allocate bitrate depending on room size to prevent CPU & upload congestion
+  const participantCount = AppState.peerCalls.size + 1;
+  let maxVideoBitrate = 1200000; // 1.2 Mbps for 1-on-1 (crystal sharp HD)
+  
+  if (participantCount >= 5) {
+    maxVideoBitrate = 400000; // 400 kbps for 5+ people
+  } else if (participantCount >= 3) {
+    maxVideoBitrate = 700000; // 700 kbps for 3-4 people
+  }
+
+  pc.getSenders().forEach((sender) => {
+    if (sender.track && sender.track.kind === 'video') {
+      try {
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = maxVideoBitrate;
+        params.encodings[0].networkPriority = 'high';
+        params.degradationPreference = 'balanced';
+        sender.setParameters(params).catch(() => {});
+      } catch (err) {
+        // Some older browser engines do not support sender encoding tuning
+      }
+    }
+
+    if (sender.track && sender.track.kind === 'audio') {
+      try {
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = 64000; // 64 kbps Opus high-definition voice
+        params.encodings[0].networkPriority = 'high';
+        sender.setParameters(params).catch(() => {});
+      } catch (err) {}
+    }
+  });
+}
+
+function dynamicallyAdjustBitrates() {
+  AppState.peerCalls.forEach((call) => {
+    if (call.peerConnection) {
+      tunePeerSenders(call.peerConnection);
+    }
+  });
 }
 
 /* ==========================================================================
@@ -523,6 +625,7 @@ function removeRemoteVideoTile(peerId) {
 
   adjustGridLayout();
   updateParticipantsDisplay();
+  dynamicallyAdjustBitrates();
 }
 
 function adjustGridLayout() {
