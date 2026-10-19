@@ -607,36 +607,53 @@ function toggleCamera() {
 }
 
 async function toggleScreenShare() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    showAlert('Screen sharing is not supported by your current browser or mobile device.', true);
+    return;
+  }
+
   if (!AppState.isSharingScreen) {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' },
-        audio: false
+        audio: true
       });
 
       AppState.displayStream = displayStream;
       AppState.isSharingScreen = true;
       UI.btnScreen.className = 'ctrl-btn active-green';
+      const screenLabel = UI.btnScreen.querySelector('.btn-label');
+      if (screenLabel) screenLabel.textContent = 'Stop Share';
 
-      const screenTrack = displayStream.getVideoTracks()[0];
+      const screenVideoTrack = displayStream.getVideoTracks()[0];
 
-      // Update tracks on active calls
+      // Update video sender on all active peer connections
       AppState.peerCalls.forEach((call) => {
-        const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(screenTrack);
+        try {
+          const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(screenVideoTrack);
+          }
+        } catch (e) {
+          console.warn('Could not replace video track for peer:', call.peer, e);
         }
       });
 
+      // Update local preview without mirroring
+      UI.localVideo.classList.add('no-mirror');
       UI.localVideo.srcObject = displayStream;
 
-      screenTrack.onended = () => {
+      // Handle user stopping share via browser native banner ("Stop sharing")
+      screenVideoTrack.onended = () => {
         stopScreenSharing();
       };
 
-      showToast('Sharing your screen');
+      showToast('Screen sharing started');
     } catch (err) {
-      console.warn('Screen share cancelled:', err);
+      if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+        showAlert('Could not share screen: ' + (err.message || err.name), true);
+      }
+      console.warn('Screen share cancelled or failed:', err);
     }
   } else {
     stopScreenSharing();
@@ -647,20 +664,28 @@ function stopScreenSharing() {
   if (!AppState.isSharingScreen) return;
   AppState.isSharingScreen = false;
   UI.btnScreen.className = 'ctrl-btn';
+  const screenLabel = UI.btnScreen.querySelector('.btn-label');
+  if (screenLabel) screenLabel.textContent = 'Share';
 
   if (AppState.displayStream) {
     AppState.displayStream.getTracks().forEach(t => t.stop());
     AppState.displayStream = null;
   }
 
+  // Restore camera stream in local preview
+  UI.localVideo.classList.remove('no-mirror');
   UI.localVideo.srcObject = AppState.localStream;
   const cameraTrack = AppState.localStream?.getVideoTracks()[0];
 
   if (cameraTrack) {
     AppState.peerCalls.forEach((call) => {
-      const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
-      if (sender) {
-        sender.replaceTrack(cameraTrack);
+      try {
+        const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(cameraTrack);
+        }
+      } catch (e) {
+        console.warn('Could not restore camera track for peer:', call.peer, e);
       }
     });
   }

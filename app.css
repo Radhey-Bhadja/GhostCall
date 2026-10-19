@@ -571,6 +571,11 @@ body {
   transform: scaleX(-1);
 }
 
+#local-video-box video.no-mirror {
+  transform: none;
+  object-fit: contain;
+}
+
 #local-video-box .self-label {
   position: absolute;
   bottom: 6px;
