@@ -560,14 +560,15 @@ function configureCallParameters(call) {
 function tunePeerSenders(pc) {
   if (!pc || !pc.getSenders) return;
 
-  // Dynamically allocate bitrate depending on room size to prevent CPU & upload congestion
   const participantCount = AppState.peerCalls.size + 1;
-  let maxVideoBitrate = 1200000; // 1.2 Mbps for 1-on-1 (crystal sharp HD)
+  // High-definition bandwidth allocation:
+  // For 1-on-1 calls (laptop + mobile), allocate up to 2.5 Mbps so video is sharp and not blurry
+  let maxVideoBitrate = AppState.isSharingScreen ? 3000000 : 2500000;
   
   if (participantCount >= 5) {
-    maxVideoBitrate = 400000; // 400 kbps for 5+ people
+    maxVideoBitrate = 800000;  // 800 kbps for 5+ people
   } else if (participantCount >= 3) {
-    maxVideoBitrate = 700000; // 700 kbps for 3-4 people
+    maxVideoBitrate = 1400000; // 1.4 Mbps for 3-4 people
   }
 
   pc.getSenders().forEach((sender) => {
@@ -579,10 +580,11 @@ function tunePeerSenders(pc) {
         }
         params.encodings[0].maxBitrate = maxVideoBitrate;
         params.encodings[0].networkPriority = 'high';
-        params.degradationPreference = 'balanced';
+        // When sharing screen, prioritize maintaining resolution so text is sharp; otherwise maintain balanced
+        params.degradationPreference = AppState.isSharingScreen ? 'maintain-resolution' : 'maintain-framerate';
         sender.setParameters(params).catch(() => {});
       } catch (err) {
-        // Some older browser engines do not support sender encoding tuning
+        // Some mobile browsers may not support sender encoding parameter changes
       }
     }
 
@@ -815,53 +817,75 @@ function toggleCamera() {
 
 async function toggleScreenShare() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    showAlert('Screen sharing is not supported by your current browser or mobile device.', true);
+    showAlert('Screen sharing is not supported by your mobile browser. Use Chrome/Edge/Firefox on desktop or supported Android Chrome.', true);
     return;
   }
 
   if (!AppState.isSharingScreen) {
+    let displayStream = null;
     try {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { cursor: 'always' },
+      // First try standard request with audio
+      displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
         audio: true
       });
-
-      AppState.displayStream = displayStream;
-      AppState.isSharingScreen = true;
-      UI.btnScreen.className = 'ctrl-btn active-green';
-      const screenLabel = UI.btnScreen.querySelector('.btn-label');
-      if (screenLabel) screenLabel.textContent = 'Stop Share';
-
-      const screenVideoTrack = displayStream.getVideoTracks()[0];
-
-      // Update video sender on all active peer connections
-      AppState.peerCalls.forEach((call) => {
-        try {
-          const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
-          if (sender) {
-            sender.replaceTrack(screenVideoTrack);
-          }
-        } catch (e) {
-          console.warn('Could not replace video track for peer:', call.peer, e);
+    } catch (audioErr) {
+      // Many mobile browsers (Android Chrome) reject getDisplayMedia when audio is true
+      console.warn('getDisplayMedia with audio failed, falling back to video only:', audioErr);
+      try {
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true
+        });
+      } catch (videoErr) {
+        if (videoErr.name !== 'AbortError' && videoErr.name !== 'NotAllowedError') {
+          showAlert('Screen share could not start: ' + (videoErr.message || videoErr.name), true);
         }
-      });
-
-      // Update local preview without mirroring
-      UI.localVideo.classList.add('no-mirror');
-      UI.localVideo.srcObject = displayStream;
-
-      // Handle user stopping share via browser native banner ("Stop sharing")
-      screenVideoTrack.onended = () => {
-        stopScreenSharing();
-      };
-
-      showToast('Screen sharing started');
-    } catch (err) {
-      if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
-        showAlert('Could not share screen: ' + (err.message || err.name), true);
+        return;
       }
-      console.warn('Screen share cancelled or failed:', err);
     }
+
+    if (!displayStream) return;
+
+    AppState.displayStream = displayStream;
+    AppState.isSharingScreen = true;
+    UI.btnScreen.className = 'ctrl-btn active-green';
+    const screenLabel = UI.btnScreen.querySelector('.btn-label');
+    if (screenLabel) screenLabel.textContent = 'Stop Share';
+
+    const screenVideoTrack = displayStream.getVideoTracks()[0];
+
+    // Inform all peers via Data Channel that screen share started
+    broadcastMeshMessage({
+      type: 'SCREEN_SHARE_STATE',
+      peerId: AppState.myPeerId,
+      sharing: true
+    });
+
+    // Update video sender on all active peer connections
+    AppState.peerCalls.forEach((call) => {
+      try {
+        const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(screenVideoTrack);
+        }
+      } catch (e) {
+        console.warn('Could not replace video track for peer:', call.peer, e);
+      }
+    });
+
+    // Update bitrates to maintain crisp text & high resolution
+    dynamicallyAdjustBitrates();
+
+    // Update local preview without mirroring
+    UI.localVideo.classList.add('no-mirror');
+    UI.localVideo.srcObject = displayStream;
+
+    // Handle user stopping share via browser native banner ("Stop sharing")
+    screenVideoTrack.onended = () => {
+      stopScreenSharing();
+    };
+
+    showToast('Screen sharing started');
   } else {
     stopScreenSharing();
   }
@@ -896,6 +920,16 @@ function stopScreenSharing() {
       }
     });
   }
+
+  // Restore camera bitrates
+  dynamicallyAdjustBitrates();
+
+  // Inform all peers that screen share ended
+  broadcastMeshMessage({
+    type: 'SCREEN_SHARE_STATE',
+    peerId: AppState.myPeerId,
+    sharing: false
+  });
 
   showToast('Screen sharing stopped');
 }
