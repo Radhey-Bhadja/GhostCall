@@ -576,6 +576,58 @@ body {
   object-fit: contain;
 }
 
+/* WhatsApp-Style User Avatar Placeholder */
+.avatar-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+  z-index: 10;
+  gap: 8px;
+}
+
+.avatar-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #334155;
+  border: 2px solid #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.avatar-circle svg {
+  width: 32px;
+  height: 32px;
+  fill: #cbd5e1;
+}
+
+.avatar-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+}
+
+#local-video-box .avatar-circle {
+  width: 44px;
+  height: 44px;
+}
+
+#local-video-box .avatar-circle svg {
+  width: 24px;
+  height: 24px;
+}
+
+#local-video-box .avatar-name {
+  font-size: 0.72rem;
+}
+
 #local-video-box .self-label {
   position: absolute;
   bottom: 6px;

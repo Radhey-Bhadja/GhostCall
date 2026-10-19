@@ -46,6 +46,7 @@ const UI = {
   waitingScreen: document.getElementById('waiting-screen'),
   localVideo: document.getElementById('local-video'),
   localVideoBox: document.getElementById('local-video-box'),
+  localAvatar: document.getElementById('local-avatar'),
 
   // Header info
   roomInfoPill: document.getElementById('header-room-pill'),
@@ -426,6 +427,18 @@ function handleMeshSignaling(data, fromPeerId) {
       }
       break;
 
+    case 'CAMERA_STATE':
+      if (data.peerId) {
+        const remoteCard = document.getElementById(`card-${data.peerId}`);
+        if (remoteCard) {
+          const avatar = remoteCard.querySelector('.avatar-placeholder');
+          if (avatar) {
+            avatar.style.display = data.videoEnabled ? 'none' : 'flex';
+          }
+        }
+      }
+      break;
+
     case 'PEER_LEFT':
       if (data.peerId) {
         removeRemoteVideoTile(data.peerId);
@@ -587,6 +600,20 @@ function renderRemoteVideoTile(peerId, stream) {
     `;
 
     card.appendChild(videoEl);
+
+    // Remote avatar placeholder (WhatsApp style)
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar-placeholder';
+    avatar.id = `avatar-${peerId}`;
+    avatar.style.display = 'none';
+    avatar.innerHTML = `
+      <div class="avatar-circle">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+      <span class="avatar-name">${name}</span>
+    `;
+
+    card.appendChild(avatar);
     card.appendChild(tag);
     UI.videoGrid.appendChild(card);
   } else {
@@ -595,6 +622,21 @@ function renderRemoteVideoTile(peerId, stream) {
 
   if (videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
+  }
+
+  // Bind track mute/unmute events so avatar toggles automatically
+  const videoTrack = stream.getVideoTracks()[0];
+  if (videoTrack) {
+    const avatarEl = card.querySelector('.avatar-placeholder');
+    const updateAvatarVisibility = () => {
+      if (avatarEl) {
+        avatarEl.style.display = (!videoTrack.enabled || videoTrack.muted) ? 'flex' : 'none';
+      }
+    };
+
+    videoTrack.onmute = updateAvatarVisibility;
+    videoTrack.onunmute = updateAvatarVisibility;
+    updateAvatarVisibility();
   }
 
   adjustGridLayout();
@@ -691,22 +733,41 @@ function toggleCamera() {
     return;
   }
 
-  const enabled = !videoTracks[0].enabled;
-  videoTracks.forEach(t => t.enabled = enabled);
+  // Toggle video track enabled state (keeps connection intact, zero audio disruption)
+  const isEnabled = !videoTracks[0].enabled;
+  videoTracks.forEach(track => {
+    track.enabled = isEnabled;
+  });
 
-  if (enabled) {
+  // Ensure microphone audio track stays active and completely unaffected
+  const audioTracks = AppState.localStream.getAudioTracks();
+  if (audioTracks.length > 0 && !UI.btnMic.classList.contains('inactive-red')) {
+    audioTracks.forEach(t => t.enabled = true);
+  }
+
+  // Update UI and WhatsApp-style Avatar Placeholder
+  if (isEnabled) {
     UI.btnCam.className = 'ctrl-btn active-green';
     UI.iconCamOn.style.display = 'block';
     UI.iconCamOff.style.display = 'none';
     UI.labelCam.textContent = 'Camera';
+    if (UI.localAvatar) UI.localAvatar.style.display = 'none';
     showToast('Camera turned on');
   } else {
     UI.btnCam.className = 'ctrl-btn inactive-red';
     UI.iconCamOn.style.display = 'none';
     UI.iconCamOff.style.display = 'block';
     UI.labelCam.textContent = 'Off';
+    if (UI.localAvatar) UI.localAvatar.style.display = 'flex';
     showToast('Camera turned off');
   }
+
+  // Broadcast camera state to peers so their UI instantly displays avatar
+  broadcastMeshMessage({
+    type: 'CAMERA_STATE',
+    peerId: AppState.myPeerId,
+    videoEnabled: isEnabled
+  });
 }
 
 async function toggleScreenShare() {
