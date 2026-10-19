@@ -190,12 +190,12 @@ async function startVideoCallRoom(roomId, isGuest = false) {
 }
 
 async function initLocalMediaStream() {
-  // Studio-grade audio & sharp video constraints with smart degradation
+  // Studio-grade 1080p/720p HD with color & clarity optimization
   const primaryConstraints = {
     video: {
-      width: { ideal: 1280, min: 640 },
-      height: { ideal: 720, min: 480 },
-      frameRate: { ideal: 30, min: 15 },
+      width: { ideal: 1920, min: 1280 },
+      height: { ideal: 1080, min: 720 },
+      frameRate: { ideal: 30, min: 24 },
       facingMode: 'user'
     },
     audio: {

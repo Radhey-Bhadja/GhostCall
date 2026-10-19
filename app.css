@@ -524,6 +524,10 @@ body {
   object-fit: contain;
   background: #000;
   border-radius: var(--radius-md);
+  /* Natural skin tone color grading & clarity enhancement */
+  filter: contrast(1.05) saturate(1.08) brightness(1.02);
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .user-tag {
@@ -573,11 +577,14 @@ body {
   height: 100%;
   object-fit: cover;
   transform: scaleX(-1);
+  filter: contrast(1.05) saturate(1.08) brightness(1.02);
+  image-rendering: -webkit-optimize-contrast;
 }
 
 #local-video-box video.no-mirror {
   transform: none;
   object-fit: contain;
+  filter: none; /* Keep screen share colors completely natural */
 }
 
 /* WhatsApp-Style User Avatar Placeholder */
