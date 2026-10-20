@@ -236,6 +236,15 @@ function showCallView() {
   if (UI.participantsPill) UI.participantsPill.style.display = 'inline-flex';
   UI.btnHeaderShare.style.display = 'inline-flex';
   UI.headerCallTimer.style.display = 'inline-flex';
+
+  if (UI.localVideoBox) {
+    UI.localVideoBox.style.left = '';
+    UI.localVideoBox.style.top = '';
+    UI.localVideoBox.style.right = '';
+    UI.localVideoBox.style.bottom = '';
+    UI.localVideoBox.classList.remove('is-expanded');
+  }
+
   startCallTimer();
 }
 
@@ -1532,10 +1541,18 @@ function exitCallToHero(cleanHash = true) {
     AppState.peer = null;
   }
 
-  // 3. Reset Video Grid
+  // 3. Reset Video Grid & PiP
   const cards = UI.videoGrid.querySelectorAll('.video-card');
   cards.forEach(c => c.remove());
   if (UI.waitingScreen) UI.waitingScreen.style.display = 'flex';
+
+  if (UI.localVideoBox) {
+    UI.localVideoBox.style.left = '';
+    UI.localVideoBox.style.top = '';
+    UI.localVideoBox.style.right = '';
+    UI.localVideoBox.style.bottom = '';
+    UI.localVideoBox.classList.remove('is-expanded');
+  }
 
   // 4. Reset Views & URL
   AppState.currentRoomId = null;
