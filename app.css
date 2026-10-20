@@ -421,21 +421,6 @@ body.in-call-mode .brand-subtitle {
   width: 100%;
 }
 
-.trust-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--emerald-50);
-  border: 1px solid var(--emerald-100);
-  padding: 6px 16px;
-  border-radius: var(--radius-full);
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--emerald-700);
-  margin-bottom: 22px;
-  box-shadow: var(--shadow-xs);
-}
-
 .hero-headline {
   font-size: 3.1rem;
   font-weight: 800;
@@ -1164,30 +1149,12 @@ body.in-call-mode .brand-subtitle {
   box-shadow: var(--shadow-md);
 }
 
-.waiting-icon-bounce {
-  font-size: 3rem;
-  margin-bottom: 14px;
-  animation: bounceEmoji 2s infinite;
-}
-
-@keyframes bounceEmoji {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.waiting-banner h2 {
-  font-size: 1.7rem;
-  color: #ffffff;
-  font-weight: 800;
-  margin-bottom: 10px;
-  letter-spacing: -0.02em;
-}
-
 .waiting-banner p {
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   line-height: 1.6;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
   max-width: 440px;
+  color: #e2e8f0;
 }
 
 .waiting-actions {
@@ -1837,10 +1804,6 @@ body.in-call-mode .brand-subtitle {
 
   .hero-text-col {
     text-align: center;
-  }
-
-  .trust-pill {
-    margin: 0 auto 20px auto;
   }
 
   .hero-headline {

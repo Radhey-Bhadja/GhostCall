@@ -74,9 +74,9 @@ const UI = {
   // Header
   appHeader: document.getElementById('app-header'),
   roomInfoPill: document.getElementById('header-room-pill'),
+  participantsPill: document.getElementById('header-participants-pill'),
   displayRoomId: document.getElementById('display-room-id'),
   participantCountText: document.getElementById('participant-count-text'),
-  headerStatusDot: document.getElementById('header-status-dot'),
   btnHeaderShare: document.getElementById('btn-header-share'),
   headerCallTimer: document.getElementById('header-call-timer'),
   callDurationText: document.getElementById('call-duration-text'),
@@ -221,9 +221,9 @@ function showHeroView() {
   UI.heroView.style.display = 'flex';
   UI.callView.style.display = 'none';
   UI.roomInfoPill.style.display = 'none';
+  if (UI.participantsPill) UI.participantsPill.style.display = 'none';
   UI.btnHeaderShare.style.display = 'none';
   UI.headerCallTimer.style.display = 'none';
-  UI.participantCountText.textContent = 'Instant & Free Group Calls';
   stopCallTimer();
   stopAudioAnalysis();
 }
@@ -233,6 +233,7 @@ function showCallView() {
   UI.heroView.style.display = 'none';
   UI.callView.style.display = 'flex';
   UI.roomInfoPill.style.display = 'inline-flex';
+  if (UI.participantsPill) UI.participantsPill.style.display = 'inline-flex';
   UI.btnHeaderShare.style.display = 'inline-flex';
   UI.headerCallTimer.style.display = 'inline-flex';
   startCallTimer();
@@ -315,7 +316,9 @@ async function startVideoCallRoom(roomId, isGuest = false) {
 
   updateLocalDisplayName(AppState.myDisplayName || 'You');
   showCallView();
-  UI.participantCountText.textContent = 'Starting camera & connecting...';
+  if (UI.participantCountText) {
+    UI.participantCountText.textContent = 'Connecting...';
+  }
 
   // Step 1: Start Camera & Mic
   await initLocalMediaStream();
@@ -953,10 +956,12 @@ function adjustGridLayout() {
 
 function updateParticipantsDisplay() {
   const total = AppState.peerCalls.size + 1;
-  if (total === 1) {
-    UI.participantCountText.textContent = 'Only you in this room';
-  } else {
-    UI.participantCountText.textContent = `${total} people connected`;
+  if (UI.participantCountText) {
+    if (total === 1) {
+      UI.participantCountText.textContent = '1 in room';
+    } else {
+      UI.participantCountText.textContent = `${total} in room`;
+    }
   }
 }
 

@@ -26,13 +26,7 @@
   <header class="main-header" id="app-header">
     <div class="brand-wrap" onclick="handleBrandClick()" title="GhostCall Home" role="button" tabindex="0">
       <img src="logo.png" alt="GhostCall Logo" class="brand-logo-img" />
-      <div class="brand-text">
-        <div class="brand-title">GhostCall</div>
-        <div class="brand-subtitle">
-          <span class="status-dot" id="header-status-dot"></span>
-          <span id="participant-count-text">Ready to connect</span>
-        </div>
-      </div>
+      <div class="brand-title">GhostCall</div>
     </div>
 
     <!-- Active Call Header Widgets -->
@@ -40,6 +34,9 @@
       <div class="call-timer-pill" id="header-call-timer" style="display: none;">
         <span class="timer-dot"></span>
         <span id="call-duration-text">00:00</span>
+      </div>
+      <div class="room-badge-pill" id="header-participants-pill" style="display: none;">
+        <span id="participant-count-text">1 in call</span>
       </div>
       <div class="room-badge-pill" id="header-room-pill" style="display: none;" title="Click to copy Room Code" onclick="copyRoomCode()">
         <span class="badge-label">Room:</span>
@@ -81,11 +78,6 @@
     <div class="hero-container">
       <!-- Left Column: Friendly Hero Intro -->
       <div class="hero-text-col">
-        <div class="trust-pill">
-          <span class="pulse-spark">✨</span>
-          <span>100% Free • No Signups • Peer-to-Peer</span>
-        </div>
-
         <h1 class="hero-headline">
           Video calls made for <span class="gradient-text">real people.</span>
         </h1>
@@ -228,8 +220,6 @@
       <div id="video-grid" class="layout-1">
         <!-- Waiting screen if room is empty -->
         <div id="waiting-screen" class="waiting-banner">
-          <div class="waiting-icon-bounce">🎉</div>
-          <h2>You're all set!</h2>
           <p>No one else is here yet. Click the button below to copy your room link and send it to your friends or family.</p>
           <div class="waiting-actions">
             <button class="btn-emerald-cta" onclick="handleShareAction()">
