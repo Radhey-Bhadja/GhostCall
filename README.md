@@ -1,26 +1,36 @@
 # 👻 GhostCall
 
 > **Zero Login, Zero Database, Instant Multi-Party WebRTC Video Calling**  
-> Simple, private, and designed for everyone — from kids to grandparents.
+> Modern, ultra-private, and designed for everyone — from kids to grandparents.
 
-Lightning-fast, secure group video calling web app that requires no login, no registration, and no database. Built with WebRTC, it lets you create or join a private video room instantly via a simple link, supporting multi-party peer-to-peer calls with complete data privacy.
+GhostCall is a lightning-fast, secure group video calling web application that requires no login, no registration, and no database. Built with pure browser WebRTC mesh networking, it enables you to create or join private video rooms instantly via simple 6-digit codes or direct invite links, supporting low-latency multi-party video calls with end-to-end data privacy.
 
 ![GhostCall Logo](logo.png)
 
-## ✨ Features
+---
 
-- **No Logins & No Accounts**: No passwords to remember or credentials to provide. Just jump in and talk.
-- **Mesh Peer-to-Peer Architecture**: Direct browser-to-browser WebRTC connection powered by [PeerJS](https://peerjs.com/) and public STUN servers (`stun.l.google.com:19302`).
-- **Multi-Party Group Calls**: Supports 3 to 6 participants per room with dynamic auto-adjusting video tile grids.
-- **Easy Room Sharing**: 1-click room creation generates a 6-digit room code and direct URL hash (e.g., `#room-582910`) ready to share on WhatsApp or SMS.
-- **Essential Controls**:
-  - 🎙️ Mute / Unmute Microphone
-  - 📹 Turn Camera On / Off
-  - 💻 Screen Sharing with live track replacement
-  - 📋 One-tap room link copying
-  - 🔴 Clean call exit with instant rejoin option
-- **Light & Accessible UI**: Clean, human-crafted design with soft emerald accents, high-contrast text, and simple navigation.
-- **Vercel & Static Host Ready**: Pre-configured `vercel.json` with clean URLs and security headers.
+## ✨ Features & Upgrades
+
+- **No Logins & No Accounts**: Zero passwords, credentials, or tracking. Jump in and talk in 1 second.
+- **Mesh Peer-to-Peer Architecture**: Direct browser-to-browser WebRTC connection powered by [PeerJS](https://peerjs.com/) and public STUN servers.
+- **Deterministic Glare-Free WebRTC Mesh**: Eliminates call collision loops, audio echo, and duplicate video cards.
+- **Active Speaker Detection**: Real-time Web Audio API frequency analysis highlighting current speakers with an emerald glow.
+- **Live In-Call P2P Chat**: Private slide-out messaging drawer with unread badge counter, sent directly over DataChannels with zero server storage.
+- **Floating Emoji Reactions**: Send live reactions (❤️, 👍, 😂, 👏, 🎉, 🔥) that float dynamically across peers' screens.
+- **Camera Flip & Device Flexibility**: 1-tap camera toggle between front and environment cameras on mobile devices.
+- **Draggable & Expandable PiP Self-View**: Move your local preview anywhere on screen or double-click to enlarge.
+- **Smart Room Sharing**:
+  - 1-click room creation generates a 6-digit room code and direct URL hash (`#room-582910`).
+  - Native Web Share API integration on mobile.
+  - Direct 1-tap WhatsApp sharing (`https://api.whatsapp.com/send?text=...`).
+- **Essential Controls & Shortcuts**:
+  - 🎙️ Mute / Unmute Microphone (`M`)
+  - 📹 Turn Camera On / Off (`V`)
+  - 💻 Screen Sharing with live track replacement (`S`)
+  - 💬 Toggle In-Call Chat Drawer (`C`)
+  - ⏱️ Live Call Duration Timer
+  - 🔴 Smooth Leave Call confirmation dialog and instant **Rejoin Room** option.
+- **Responsive & Accessible**: Optimized for mobile, tablet, and desktop screens with safe-area insets.
 
 ---
 
@@ -56,7 +66,8 @@ Open `http://localhost:8000` in your browser.
 
 ## 🛠️ Tech Stack
 
-- **HTML5 & CSS3** (Vanilla, responsive CSS Grid and Flexbox)
+- **HTML5 & CSS3** (Vanilla, responsive CSS Grid and Flexbox, Glassmorphism, animations)
 - **Vanilla JavaScript (ES6+)**
-- **WebRTC & PeerJS** (Signaling and P2P Mesh data/media streams)
+- **WebRTC & PeerJS** (Signaling, MediaStreams, and DataChannels)
+- **Web Audio API** (Real-time AnalyserNode for active speaker detection)
 - **Google STUN** (`stun:stun.l.google.com:19302`) for NAT traversal
