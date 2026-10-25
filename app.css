@@ -23,11 +23,11 @@
   --indigo-600: #4f46e5;
 
   /* Neutral Surfaces (Light Theme for Hero) */
-  --bg-page: #f8fafc;
+  --bg-page: #eef2f6;
   --bg-surface: #ffffff;
-  --bg-subtle: #f1f5f9;
+  --bg-subtle: #f8fafc;
   --bg-hover: #e2e8f0;
-  --border-light: #e2e8f0;
+  --border-light: #cbd5e1;
   --border-focus: #10b981;
 
   /* Call Stage (Deep Cinematic Dark for optimal contrast) */
@@ -446,37 +446,52 @@ body.in-call-mode .brand-subtitle {
   max-width: 520px;
 }
 
-/* Display Name Input */
+/* Display Name Input (Elevated High-Contrast Card) */
 .name-input-group {
   background: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: 14px 18px;
+  padding: 18px 20px;
   margin-bottom: 28px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
   max-width: 480px;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all var(--transition-fast);
+}
+
+.name-input-group:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 8px 20px -2px rgba(15, 23, 42, 0.09);
 }
 
 .name-input-group:focus-within {
   border-color: var(--emerald-500);
-  box-shadow: 0 0 0 3px var(--emerald-100);
+  box-shadow: 0 0 0 3px var(--emerald-100), 0 8px 20px -2px rgba(15, 23, 42, 0.08);
 }
 
 .name-input-group label {
   display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+  color: var(--text-dark);
+  margin-bottom: 8px;
 }
 
 .name-input-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
+  background: var(--bg-subtle);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.name-input-group:focus-within .name-input-wrap {
+  border-color: var(--emerald-500);
+  background: #ffffff;
 }
 
 .name-avatar-preview {
@@ -515,45 +530,42 @@ body.in-call-mode .brand-subtitle {
   margin-top: 6px;
 }
 
-/* Right Column Hub Box (Clean & Modern) */
+/* Right Column Hub Box (Elevated High-Contrast Card) */
 .hero-hub-box {
   background: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 36px 30px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 14px 35px -5px rgba(15, 23, 42, 0.09), 0 6px 14px -3px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
+  transition: all var(--transition-fast);
+}
+
+.hero-hub-box:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 18px 40px -6px rgba(15, 23, 42, 0.12), 0 8px 18px -4px rgba(15, 23, 42, 0.06);
 }
 
 .hub-header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.hub-header-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--emerald-600);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  gap: 4px;
 }
 
 .hub-header-title {
-  font-size: 1.45rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--text-dark);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  margin: 0;
 }
 
 .hub-header-sub {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
+  margin: 0;
 }
 
 .hub-action-section {
@@ -631,9 +643,10 @@ body.in-call-mode .brand-subtitle {
   gap: 6px;
   position: relative;
   background: var(--bg-subtle);
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-full);
-  padding: 4px;
+  padding: 5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all var(--transition-fast);
 }
 

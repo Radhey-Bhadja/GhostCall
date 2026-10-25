@@ -53,7 +53,9 @@ const AppState = {
   unreadChatCount: 0,
   isChatOpen: false,
   isConnectingInitialHost: false,
-  isSwappedVideo: false
+  isSwappedVideo: false,
+  isCallActive: false,
+  suppressNavConfirm: false
 };
 
 // 3. Cached DOM References
@@ -141,6 +143,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Watch Navigation & Back Button Events
 window.addEventListener('popstate', () => {
+  if (AppState.suppressNavConfirm) return;
+
   // Case 1: User is in chat drawer and clicks Back -> close chat drawer & stay in video call!
   if (AppState.isChatOpen) {
     closeChatDrawer(false);
@@ -148,7 +152,7 @@ window.addEventListener('popstate', () => {
   }
 
   // Case 2: User is in active call and clicks Back -> show "Are you sure to end call?" modal!
-  if (AppState.currentRoomId) {
+  if (AppState.isCallActive && AppState.currentRoomId) {
     window.location.hash = `room-${AppState.currentRoomId}`;
     try {
       history.pushState({ inRoom: true, room: AppState.currentRoomId }, '', window.location.href);
@@ -159,13 +163,15 @@ window.addEventListener('popstate', () => {
 
 // Watch URL hash navigation
 window.addEventListener('hashchange', () => {
+  if (AppState.suppressNavConfirm) return;
+
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').trim();
     if (extractedId && extractedId !== AppState.currentRoomId) {
       startVideoCallRoom(extractedId, true);
     }
-  } else if (!hash && AppState.currentRoomId) {
+  } else if (!hash && AppState.isCallActive && AppState.currentRoomId) {
     if (AppState.isChatOpen) {
       closeChatDrawer(false);
       window.location.hash = `room-${AppState.currentRoomId}`;
@@ -350,6 +356,8 @@ function clearRoomInputError() {
 async function startVideoCallRoom(roomId, isGuest = false) {
   AppState.currentRoomId = roomId;
   AppState.lastRoomId = roomId;
+  AppState.isCallActive = true;
+  AppState.suppressNavConfirm = true;
   AppState.isJoiningAsGuest = isGuest;
   AppState.isConnectingInitialHost = isGuest;
 
@@ -357,6 +365,10 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   try {
     history.replaceState({ inRoom: true, room: roomId }, '', window.location.href);
   } catch (e) {}
+
+  setTimeout(() => {
+    AppState.suppressNavConfirm = false;
+  }, 1000);
   UI.displayRoomId.textContent = roomId;
   if (UI.shareModalCode) UI.shareModalCode.textContent = roomId;
   if (UI.shareModalLinkInput) UI.shareModalLinkInput.value = window.location.href;
@@ -1595,7 +1607,13 @@ function executeLeaveCall() {
   closeLeaveModal();
   closeChatDrawer(false);
   const prevRoom = AppState.currentRoomId;
+  AppState.isCallActive = false;
+  AppState.currentRoomId = null;
+  AppState.suppressNavConfirm = true;
   exitCallToHero(true);
+  setTimeout(() => {
+    AppState.suppressNavConfirm = false;
+  }, 600);
 
   if (UI.modalRejoin && prevRoom) {
     if (UI.rejoinRoomId) UI.rejoinRoomId.textContent = prevRoom;
@@ -1615,6 +1633,8 @@ function rejoinPreviousRoom() {
 }
 
 function exitCallToHero(cleanHash = true) {
+  AppState.isCallActive = false;
+  AppState.currentRoomId = null;
   // 1. Stop local tracks
   if (AppState.localStream) {
     AppState.localStream.getTracks().forEach(t => t.stop());
