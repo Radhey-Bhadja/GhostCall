@@ -139,6 +139,24 @@ window.addEventListener('DOMContentLoaded', () => {
   checkUrlHashOnLoad();
 });
 
+// Watch Navigation & Back Button Events
+window.addEventListener('popstate', () => {
+  // Case 1: User is in chat drawer and clicks Back -> close chat drawer & stay in video call!
+  if (AppState.isChatOpen) {
+    closeChatDrawer(false);
+    return;
+  }
+
+  // Case 2: User is in active call and clicks Back -> show "Are you sure to end call?" modal!
+  if (AppState.currentRoomId) {
+    window.location.hash = `room-${AppState.currentRoomId}`;
+    try {
+      history.pushState({ inRoom: true, room: AppState.currentRoomId }, '', window.location.href);
+    } catch (err) {}
+    confirmLeaveCall();
+  }
+});
+
 // Watch URL hash navigation
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '').trim();
@@ -148,7 +166,22 @@ window.addEventListener('hashchange', () => {
       startVideoCallRoom(extractedId, true);
     }
   } else if (!hash && AppState.currentRoomId) {
-    exitCallToHero(false);
+    if (AppState.isChatOpen) {
+      closeChatDrawer(false);
+      window.location.hash = `room-${AppState.currentRoomId}`;
+    } else {
+      window.location.hash = `room-${AppState.currentRoomId}`;
+      confirmLeaveCall();
+    }
+  }
+});
+
+// Warn user before closing tab / reloading while in active call
+window.addEventListener('beforeunload', (e) => {
+  if (AppState.currentRoomId) {
+    e.preventDefault();
+    e.returnValue = 'Are you sure you want to end or leave this call?';
+    return e.returnValue;
   }
 });
 
@@ -321,6 +354,9 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   AppState.isConnectingInitialHost = isGuest;
 
   window.location.hash = `room-${roomId}`;
+  try {
+    history.replaceState({ inRoom: true, room: roomId }, '', window.location.href);
+  } catch (e) {}
   UI.displayRoomId.textContent = roomId;
   if (UI.shareModalCode) UI.shareModalCode.textContent = roomId;
   if (UI.shareModalLinkInput) UI.shareModalLinkInput.value = window.location.href;
@@ -1279,20 +1315,55 @@ function stopScreenSharing() {
 }
 
 /* ==========================================================================
-   In-Call Chat Drawer (Pure P2P DataChannel Messaging)
+   In-Call Chat Drawer (WhatsApp Style Pure P2P DataChannel Messaging)
    ========================================================================== */
 function toggleChatDrawer() {
-  AppState.isChatOpen = !AppState.isChatOpen;
   if (AppState.isChatOpen) {
+    closeChatDrawer(true);
+  } else {
+    openChatDrawer();
+  }
+}
+
+function openChatDrawer() {
+  if (AppState.isChatOpen) return;
+  AppState.isChatOpen = true;
+  if (UI.chatDrawer) {
     UI.chatDrawer.classList.add('open');
     UI.chatDrawer.setAttribute('aria-hidden', 'false');
-    AppState.unreadChatCount = 0;
-    if (UI.chatUnreadBadge) UI.chatUnreadBadge.style.display = 'none';
-    if (UI.chatInput) UI.chatInput.focus();
-  } else {
+  }
+  AppState.unreadChatCount = 0;
+  if (UI.chatUnreadBadge) UI.chatUnreadBadge.style.display = 'none';
+  if (UI.chatInput) {
+    setTimeout(() => UI.chatInput.focus(), 150);
+  }
+
+  // Push history state so browser/hardware back button returns to video call
+  try {
+    history.pushState({ inChat: true, room: AppState.currentRoomId }, '', window.location.href);
+  } catch (e) {}
+}
+
+function closeChatDrawer(shouldPopHistory = false) {
+  if (!AppState.isChatOpen) return;
+  AppState.isChatOpen = false;
+  if (UI.chatDrawer) {
     UI.chatDrawer.classList.remove('open');
     UI.chatDrawer.setAttribute('aria-hidden', 'true');
   }
+  if (document.activeElement && UI.chatDrawer && UI.chatDrawer.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+
+  if (shouldPopHistory && history.state && history.state.inChat) {
+    try {
+      history.back();
+    } catch (e) {}
+  }
+}
+
+function handleChatBack() {
+  closeChatDrawer(true);
 }
 
 function handleSendChatMessage(event) {
@@ -1321,21 +1392,41 @@ function appendChatMessage(sender, text, isLocal, time) {
   const bubble = document.createElement('div');
   bubble.className = `chat-bubble ${isLocal ? 'local' : 'remote'}`;
 
-  const senderDiv = document.createElement('div');
-  senderDiv.className = 'chat-bubble-sender';
-  senderDiv.textContent = isLocal ? 'You' : sender;
+  // If remote, display sender name in WhatsApp teal/cyan
+  if (!isLocal) {
+    const senderDiv = document.createElement('div');
+    senderDiv.className = 'chat-bubble-sender';
+    senderDiv.textContent = sender || 'Friend';
+    bubble.appendChild(senderDiv);
+  }
 
   const textDiv = document.createElement('div');
   textDiv.className = 'chat-bubble-text';
   textDiv.textContent = text;
-
-  const timeDiv = document.createElement('div');
-  timeDiv.className = 'chat-bubble-time';
-  timeDiv.textContent = time;
-
-  bubble.appendChild(senderDiv);
   bubble.appendChild(textDiv);
-  bubble.appendChild(timeDiv);
+
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'chat-bubble-meta';
+
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'chat-bubble-time';
+  timeSpan.textContent = time;
+  metaDiv.appendChild(timeSpan);
+
+  // If local, add WhatsApp blue double checks (✓✓)
+  if (isLocal) {
+    const checkSpan = document.createElement('span');
+    checkSpan.className = 'chat-checks';
+    checkSpan.innerHTML = `
+      <svg width="15" height="11" viewBox="0 0 16 11" fill="none">
+        <path d="M11.05 0.5L4.5 7.05L1.45 4L0.5 4.95L4.5 8.95L12 1.45L11.05 0.5Z" fill="#53bdeb"/>
+        <path d="M15.05 0.5L8.5 7.05L7.45 6L6.5 6.95L8.5 8.95L16 1.45L15.05 0.5Z" fill="#53bdeb"/>
+      </svg>
+    `;
+    metaDiv.appendChild(checkSpan);
+  }
+
+  bubble.appendChild(metaDiv);
 
   UI.chatMessagesList.appendChild(bubble);
   UI.chatMessagesList.scrollTop = UI.chatMessagesList.scrollHeight;
@@ -1502,6 +1593,7 @@ function closeLeaveModal() {
 
 function executeLeaveCall() {
   closeLeaveModal();
+  closeChatDrawer(false);
   const prevRoom = AppState.currentRoomId;
   exitCallToHero(true);
 
@@ -1840,7 +1932,7 @@ function initGlobalKeyboardShortcuts() {
       case 'escape':
         closeLeaveModal();
         closeShareModal();
-        if (AppState.isChatOpen) toggleChatDrawer();
+        if (AppState.isChatOpen) closeChatDrawer(false);
         if (UI.reactionsPicker) UI.reactionsPicker.style.display = 'none';
         break;
     }
