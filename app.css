@@ -515,131 +515,74 @@ body.in-call-mode .brand-subtitle {
   margin-top: 6px;
 }
 
-/* Human Perks Grid */
-.human-perks {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  max-width: 540px;
-}
-
-.perk-item {
-  display: flex;
+/* Hero Badge Pill */
+.hero-pill-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
-  transition: all var(--transition-fast);
-}
-
-.perk-item:hover {
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.perk-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
+  gap: 8px;
   background: var(--emerald-50);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  flex-shrink: 0;
-  border: 1px solid var(--emerald-100);
-}
-
-.perk-title {
+  border: 1px solid var(--emerald-200);
+  color: var(--emerald-700);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.84rem;
   font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.hero-pill-badge .lock-icon {
   font-size: 0.92rem;
-  color: var(--text-dark);
 }
 
-.perk-sub {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-/* Right Column Hub Box */
+/* Right Column Hub Box (Clean & Modern) */
 .hero-hub-box {
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  box-shadow: var(--shadow-lg);
+  padding: 36px 30px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-.hub-card {
-  border-radius: var(--radius-md);
-  padding: 24px;
-  transition: all var(--transition-normal);
-  border: 1px solid var(--border-light);
-}
-
-.primary-hub-card {
-  background: linear-gradient(180deg, #ffffff 0%, var(--emerald-50) 100%);
-  border-color: var(--emerald-200);
-}
-
-.secondary-hub-card {
-  background: var(--bg-subtle);
-}
-
-.hub-card-title {
+.hub-header {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-header-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 10px;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--emerald-600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.icon-chip {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  flex-shrink: 0;
-}
-
-.primary-chip {
-  background: var(--emerald-100);
-  border: 1px solid var(--emerald-200);
-}
-
-.secondary-chip {
-  background: #ffffff;
-  border: 1px solid var(--border-light);
-}
-
-.hub-card-title h3 {
-  font-size: 1.22rem;
+.hub-header-title {
+  font-size: 1.45rem;
   font-weight: 800;
   color: var(--text-dark);
   letter-spacing: -0.02em;
 }
 
-.hub-subtitle {
-  display: block;
-  font-size: 0.8rem;
+.hub-header-sub {
+  font-size: 0.88rem;
   color: var(--text-muted);
-  font-weight: 500;
 }
 
-.hub-desc {
-  font-size: 0.92rem;
-  color: var(--text-body);
-  margin-bottom: 18px;
-  line-height: 1.5;
+.hub-action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-cta-icon {
+  flex-shrink: 0;
 }
 
 /* Emerald CTA Button */
@@ -704,27 +647,31 @@ body.in-call-mode .brand-subtitle {
 /* Code Entry Row */
 .code-entry-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   position: relative;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  transition: all var(--transition-fast);
+}
+
+.code-entry-row:focus-within {
+  border-color: var(--emerald-500);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px var(--emerald-100);
 }
 
 .code-entry-row input {
   flex: 1;
-  background: #ffffff;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-full);
-  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  padding: 10px 18px;
   color: var(--text-dark);
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.code-entry-row input:focus {
-  border-color: var(--emerald-500);
-  box-shadow: 0 0 0 3px var(--emerald-100);
 }
 
 .code-entry-row input::placeholder {
@@ -734,7 +681,7 @@ body.in-call-mode .brand-subtitle {
 }
 
 .btn-pill-join {
-  background: #1e293b;
+  background: var(--text-dark);
   color: #ffffff;
   font-weight: 700;
   padding: 0 24px;
@@ -747,11 +694,10 @@ body.in-call-mode .brand-subtitle {
 
 .btn-pill-join:hover {
   background: var(--emerald-600);
-  transform: translateY(-1px);
 }
 
 .btn-pill-join:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 /* Input Error Animation */
@@ -938,6 +884,10 @@ body.in-call-mode .brand-subtitle {
   image-rendering: -webkit-optimize-contrast;
 }
 
+.video-card video.is-mirrored {
+  transform: scaleX(-1);
+}
+
 /* Active Speaker Highlight */
 .video-card.is-speaking {
   border-color: var(--emerald-500);
@@ -1026,24 +976,27 @@ body.in-call-mode .brand-subtitle {
    ========================================================================== */
 .local-pip-box {
   position: absolute;
-  bottom: 24px;
-  right: 24px;
+  top: 16px;
+  right: 16px;
   width: 190px;
   height: 135px;
   background: #0f172a;
   border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: var(--shadow-float);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   border: 2px solid var(--emerald-500);
-  z-index: 25;
+  z-index: 35;
   cursor: grab;
   user-select: none;
   touch-action: none;
-  transition: width var(--transition-normal), height var(--transition-normal), transform var(--transition-fast);
+  transition: width var(--transition-normal), height var(--transition-normal);
 }
 
-.local-pip-box:active {
+.local-pip-box:active,
+.local-pip-box.is-dragging {
   cursor: grabbing;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  opacity: 0.95;
 }
 
 .local-pip-box.is-expanded {
@@ -1821,11 +1774,6 @@ body.in-call-mode .brand-subtitle {
     text-align: left;
   }
 
-  .human-perks {
-    max-width: 520px;
-    margin: 0 auto 20px auto;
-  }
-
   .guide-cards {
     grid-template-columns: 1fr;
   }
@@ -1921,56 +1869,14 @@ body.in-call-mode .brand-subtitle {
     font-size: 0.95rem;
   }
 
-  .human-perks {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    max-width: 100%;
-  }
-
-  .perk-item {
-    padding: 8px 10px;
-    gap: 8px;
-    border-radius: var(--radius-sm);
-  }
-
-  .perk-title {
-    font-size: 0.82rem;
-  }
-
-  .perk-sub {
-    font-size: 0.7rem;
-  }
-
-  .perk-icon-wrap {
-    width: 28px;
-    height: 28px;
-    font-size: 0.9rem;
-    border-radius: 6px;
-  }
-
   .hero-hub-box {
-    padding: 18px 14px;
-    gap: 14px;
+    padding: 22px 18px;
+    gap: 16px;
     border-radius: var(--radius-md);
   }
 
-  .hub-card {
-    padding: 16px 14px;
-    border-radius: var(--radius-sm);
-  }
-
-  .hub-card-title {
-    gap: 10px;
-    margin-bottom: 8px;
-  }
-
-  .hub-card-title h3 {
-    font-size: 1.08rem;
-  }
-
-  .hub-desc {
-    font-size: 0.88rem;
-    margin-bottom: 14px;
+  .hub-header-title {
+    font-size: 1.25rem;
   }
 
   .btn-emerald-cta {
@@ -1979,7 +1885,7 @@ body.in-call-mode .brand-subtitle {
   }
 
   .code-entry-row input {
-    padding: 10px 14px;
+    padding: 8px 12px;
     font-size: 0.9rem;
   }
 
@@ -2023,33 +1929,34 @@ body.in-call-mode .brand-subtitle {
 
   /* Top-Right Portrait Self-View on Mobile (FaceTime / WhatsApp Style) */
   .local-pip-box {
-    top: calc(64px + env(safe-area-inset-top, 0px));
+    top: 12px;
     right: 12px;
     bottom: auto;
     left: auto;
     width: 96px;
-    height: 132px;
-    border-radius: 14px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+    height: 138px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    border: 2px solid var(--emerald-500);
     z-index: 35;
   }
 
   .local-pip-box.is-expanded {
     width: 140px;
-    height: 190px;
+    height: 198px;
   }
 
   .local-pip-box .self-label {
-    padding: 2px 6px;
+    padding: 2px 7px;
     font-size: 0.68rem;
     bottom: 6px;
     left: 6px;
   }
 
   .local-pip-box .btn-pip-flip {
-    width: 24px;
-    height: 24px;
-    font-size: 0.75rem;
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
     top: 6px;
     right: 6px;
   }
@@ -2116,8 +2023,7 @@ body.in-call-mode .brand-subtitle {
     width: 100%;
   }
 
-  .waiting-actions .btn-emerald-cta,
-  .waiting-actions .btn-whatsapp-cta {
+  .waiting-actions .btn-emerald-cta {
     width: 100%;
     padding: 12px 18px;
     font-size: 0.94rem;

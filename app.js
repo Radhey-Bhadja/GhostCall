@@ -52,7 +52,8 @@ const AppState = {
   callTimerInterval: null,
   unreadChatCount: 0,
   isChatOpen: false,
-  isConnectingInitialHost: false
+  isConnectingInitialHost: false,
+  isSwappedVideo: false
 };
 
 // 3. Cached DOM References
@@ -60,6 +61,7 @@ const UI = {
   body: document.body,
   heroView: document.getElementById('hero-view'),
   callView: document.getElementById('call-view'),
+  callStage: document.getElementById('call-stage'),
   videoGrid: document.getElementById('video-grid'),
   waitingScreen: document.getElementById('waiting-screen'),
   localVideo: document.getElementById('local-video'),
@@ -939,6 +941,10 @@ function removeRemoteVideoTile(peerId) {
     card.parentNode.removeChild(card);
   }
 
+  if (AppState.isSwappedVideo) {
+    restoreVideoSwap();
+  }
+
   if (AppState.peerCalls.size === 0 && UI.waitingScreen) {
     UI.waitingScreen.style.display = 'flex';
   }
@@ -1542,6 +1548,7 @@ function exitCallToHero(cleanHash = true) {
   }
 
   // 3. Reset Video Grid & PiP
+  restoreVideoSwap();
   const cards = UI.videoGrid.querySelectorAll('.video-card');
   cards.forEach(c => c.remove());
   if (UI.waitingScreen) UI.waitingScreen.style.display = 'flex';
@@ -1551,7 +1558,8 @@ function exitCallToHero(cleanHash = true) {
     UI.localVideoBox.style.top = '';
     UI.localVideoBox.style.right = '';
     UI.localVideoBox.style.bottom = '';
-    UI.localVideoBox.classList.remove('is-expanded');
+    UI.localVideoBox.style.transition = '';
+    UI.localVideoBox.classList.remove('is-expanded', 'is-dragging');
   }
 
   // 4. Reset Views & URL
@@ -1599,64 +1607,206 @@ function showToast(text, icon = '✅') {
 }
 
 /* ==========================================================================
-   Draggable Picture-in-Picture Local Video
+   Draggable & Snapping Picture-in-Picture Local Video (WhatsApp Style)
    ========================================================================== */
 function initDragPip() {
   const pip = UI.localVideoBox;
   if (!pip) return;
 
+  let isPointerActive = false;
   let isDragging = false;
-  let startX, startY, initialLeft, initialTop;
-
-  // Double click / tap to expand/shrink
-  pip.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-    pip.classList.toggle('is-expanded');
-  });
+  let startX = 0, startY = 0;
+  let pipStartLeft = 0, pipStartTop = 0;
+  let snapTimeout = null;
 
   const onPointerDown = (e) => {
+    // If clicking camera flip button, let it handle its own click
     if (e.target.closest('#btn-camera-flip')) return;
-    isDragging = true;
-    startX = e.clientX || (e.touches && e.touches[0].clientX);
-    startY = e.clientY || (e.touches && e.touches[0].clientY);
 
-    const rect = pip.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
+    const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
 
-    pip.style.right = 'auto';
-    pip.style.bottom = 'auto';
-    pip.style.left = `${initialLeft}px`;
-    pip.style.top = `${initialTop}px`;
+    isPointerActive = true;
+    isDragging = false;
+    startX = clientX;
+    startY = clientY;
+
+    // Calculate stage-relative initial coordinates without modifying DOM
+    const stage = UI.callStage || document.getElementById('call-stage') || pip.parentElement;
+    const stageRect = stage.getBoundingClientRect();
+    const pipRect = pip.getBoundingClientRect();
+
+    pipStartLeft = pipRect.left - stageRect.left;
+    pipStartTop = pipRect.top - stageRect.top;
+
+    clearTimeout(snapTimeout);
   };
 
   const onPointerMove = (e) => {
-    if (!isDragging) return;
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (!isPointerActive) return;
+
+    const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
 
     const dx = clientX - startX;
     const dy = clientY - startY;
 
-    const newLeft = Math.max(10, Math.min(window.innerWidth - pip.offsetWidth - 10, initialLeft + dx));
-    const newTop = Math.max(70, Math.min(window.innerHeight - pip.offsetHeight - 80, initialTop + dy));
+    // Movement threshold (prevents tap from triggering drag)
+    if (!isDragging) {
+      if (Math.hypot(dx, dy) < 8) return;
+      isDragging = true;
+      pip.style.transition = 'none';
+      pip.classList.add('is-dragging');
+    }
+
+    if (e.cancelable && e.type.startsWith('touch')) {
+      e.preventDefault();
+    }
+
+    const stage = UI.callStage || document.getElementById('call-stage') || pip.parentElement;
+    const stageRect = stage.getBoundingClientRect();
+    const isMobile = window.innerWidth <= 640;
+    const bottomPadding = isMobile ? 80 : 88;
+
+    let newLeft = pipStartLeft + dx;
+    let newTop = pipStartTop + dy;
+
+    // Clamp inside stage boundaries
+    const minLeft = 10;
+    const maxLeft = Math.max(10, stageRect.width - pip.offsetWidth - 10);
+    const minTop = 10;
+    const maxTop = Math.max(10, stageRect.height - pip.offsetHeight - bottomPadding);
+
+    newLeft = Math.max(minLeft, Math.min(maxLeft, newLeft));
+    newTop = Math.max(minTop, Math.min(maxTop, newTop));
 
     pip.style.left = `${newLeft}px`;
     pip.style.top = `${newTop}px`;
+    pip.style.right = 'auto';
+    pip.style.bottom = 'auto';
   };
 
   const onPointerUp = () => {
-    isDragging = false;
+    if (!isPointerActive) return;
+    isPointerActive = false;
+
+    if (isDragging) {
+      isDragging = false;
+      pip.classList.remove('is-dragging');
+
+      // WhatsApp Snap-to-Corner
+      const stage = UI.callStage || document.getElementById('call-stage') || pip.parentElement;
+      const stageRect = stage.getBoundingClientRect();
+      const isMobile = window.innerWidth <= 640;
+      const bottomPadding = isMobile ? 76 : 24;
+
+      const pipCenterX = pip.offsetLeft + pip.offsetWidth / 2;
+      const pipCenterY = pip.offsetTop + pip.offsetHeight / 2;
+      const stageCenterX = stageRect.width / 2;
+      const stageCenterY = stageRect.height / 2;
+
+      const snapLeft = pipCenterX < stageCenterX;
+      const snapTop = pipCenterY < stageCenterY;
+
+      const targetLeft = snapLeft ? 12 : (stageRect.width - pip.offsetWidth - 12);
+      const targetTop = snapTop ? 12 : (stageRect.height - pip.offsetHeight - bottomPadding);
+
+      pip.style.transition = 'left 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2), top 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2)';
+      pip.style.left = `${targetLeft}px`;
+      pip.style.top = `${targetTop}px`;
+      pip.style.right = 'auto';
+      pip.style.bottom = 'auto';
+
+      snapTimeout = setTimeout(() => {
+        pip.style.transition = '';
+      }, 340);
+    } else {
+      // Tap / Click without dragging (WhatsApp behavior: does not move at all, toggles swap or size)
+      handlePipClick();
+    }
   };
 
   pip.addEventListener('mousedown', onPointerDown);
-  pip.addEventListener('touchstart', onPointerDown, { passive: true });
+  pip.addEventListener('touchstart', onPointerDown, { passive: false });
 
   window.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('touchmove', onPointerMove, { passive: true });
+  window.addEventListener('touchmove', onPointerMove, { passive: false });
 
   window.addEventListener('mouseup', onPointerUp);
   window.addEventListener('touchend', onPointerUp);
+}
+
+function handlePipClick() {
+  const remoteCards = UI.videoGrid ? UI.videoGrid.querySelectorAll('.video-card') : [];
+  if (remoteCards.length === 1) {
+    toggleSwapLocalAndRemoteVideo(remoteCards[0]);
+  } else if (UI.localVideoBox) {
+    UI.localVideoBox.classList.toggle('is-expanded');
+  }
+}
+
+function toggleSwapLocalAndRemoteVideo(remoteCard) {
+  const remoteVideo = remoteCard.querySelector('video');
+  const remoteTag = remoteCard.querySelector('.tag-name-text');
+  if (!remoteVideo || !UI.localVideo) return;
+
+  AppState.isSwappedVideo = !AppState.isSwappedVideo;
+
+  if (AppState.isSwappedVideo) {
+    const localStream = UI.localVideo.srcObject;
+    const remoteStream = remoteVideo.srcObject;
+
+    UI.localVideo.srcObject = remoteStream;
+    UI.localVideo.classList.add('no-mirror');
+
+    remoteVideo.srcObject = localStream;
+    remoteVideo.classList.add('is-mirrored');
+
+    const peerId = remoteCard.id.replace('card-', '');
+    const profile = AppState.peerProfiles.get(peerId);
+    const remoteName = profile ? profile.name : (remoteTag ? remoteTag.textContent : 'Friend');
+
+    UI.localTagName.textContent = remoteName;
+    if (remoteTag) remoteTag.textContent = AppState.myDisplayName || 'You';
+
+    showToast('Swapped views • Tap PIP again to restore');
+  } else {
+    restoreVideoSwap(remoteCard);
+  }
+}
+
+function restoreVideoSwap(remoteCard) {
+  AppState.isSwappedVideo = false;
+  if (!UI.localVideo) return;
+
+  if (AppState.localStream) {
+    UI.localVideo.srcObject = AppState.localStream;
+    UI.localVideo.classList.remove('no-mirror');
+  }
+  UI.localTagName.textContent = AppState.myDisplayName || 'You';
+
+  if (!remoteCard) {
+    const cards = UI.videoGrid ? UI.videoGrid.querySelectorAll('.video-card') : [];
+    if (cards.length > 0) remoteCard = cards[0];
+  }
+
+  if (remoteCard) {
+    const remoteVideo = remoteCard.querySelector('video');
+    const remoteTag = remoteCard.querySelector('.tag-name-text');
+    const peerId = remoteCard.id.replace('card-', '');
+    const profile = AppState.peerProfiles.get(peerId);
+    const call = AppState.peerCalls.get(peerId);
+
+    if (call && call.remoteStream && remoteVideo) {
+      remoteVideo.srcObject = call.remoteStream;
+      remoteVideo.classList.remove('is-mirrored');
+    }
+    if (remoteTag && profile) {
+      remoteTag.textContent = profile.name;
+    }
+  }
 }
 
 /* ==========================================================================
