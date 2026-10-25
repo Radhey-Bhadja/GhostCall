@@ -119,8 +119,6 @@ const UI = {
 
   // Modals
   modalLeave: document.getElementById('modal-leave'),
-  modalRejoin: document.getElementById('modal-rejoin'),
-  rejoinRoomId: document.getElementById('rejoin-room-id'),
   modalShare: document.getElementById('modal-share'),
   shareModalCode: document.getElementById('share-modal-code'),
   shareModalLinkInput: document.getElementById('share-modal-link-input'),
@@ -1606,7 +1604,6 @@ function closeLeaveModal() {
 function executeLeaveCall() {
   closeLeaveModal();
   closeChatDrawer(false);
-  const prevRoom = AppState.currentRoomId;
   AppState.isCallActive = false;
   AppState.currentRoomId = null;
   AppState.suppressNavConfirm = true;
@@ -1614,22 +1611,6 @@ function executeLeaveCall() {
   setTimeout(() => {
     AppState.suppressNavConfirm = false;
   }, 600);
-
-  if (UI.modalRejoin && prevRoom) {
-    if (UI.rejoinRoomId) UI.rejoinRoomId.textContent = prevRoom;
-    UI.modalRejoin.style.display = 'flex';
-  }
-}
-
-function dismissRejoinModal() {
-  if (UI.modalRejoin) UI.modalRejoin.style.display = 'none';
-}
-
-function rejoinPreviousRoom() {
-  dismissRejoinModal();
-  if (AppState.lastRoomId) {
-    startVideoCallRoom(AppState.lastRoomId, true);
-  }
 }
 
 function exitCallToHero(cleanHash = true) {
