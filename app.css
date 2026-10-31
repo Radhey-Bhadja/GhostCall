@@ -202,6 +202,25 @@ body.in-call-mode .brand-subtitle {
 }
 
 /* Call Timer */
+
+.encrypted-badge-pill {
+  background: rgba(0, 168, 132, 0.12);
+  border: 1px solid rgba(0, 168, 132, 0.28);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #00a884;
+  white-space: nowrap;
+}
+
+.enc-lock-icon {
+  font-size: 0.82rem;
+}
+
 .call-timer-pill {
   display: inline-flex;
   align-items: center;
@@ -798,7 +817,7 @@ body.in-call-mode .brand-subtitle {
   height: calc(100vh - 67px);
   height: calc(100dvh - 67px);
   position: relative;
-  flex-direction: column;
+  flex-direction: row;
   background: var(--stage-bg);
   overflow: hidden;
 }
@@ -812,6 +831,7 @@ body.in-call-mode .brand-subtitle {
   justify-content: center;
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
   width: 100%;
 }
 
@@ -1158,14 +1178,21 @@ body.in-call-mode .brand-subtitle {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(15, 23, 42, 0.92);
+  gap: 10px;
+  background: rgba(17, 27, 33, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding: 8px 20px;
+  padding: 8px 18px;
   border-radius: var(--radius-full);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: var(--shadow-float);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.controls-pill::-webkit-scrollbar {
+  display: none;
 }
 
 .ctrl-btn {
@@ -1264,26 +1291,56 @@ body.in-call-mode .brand-subtitle {
 /* ==========================================================================
    7. IN-CALL CHAT DRAWER (WhatsApp Style)
    ========================================================================== */
+/* Chat Drawer: WhatsApp Side-by-Side on Desktop, Drawer on Mobile */
 .chat-drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 360px;
   background-color: #0b141a;
   background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 20px 20px;
-  border-left: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.5);
-  z-index: 55;
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.3, 0, 0.2, 1);
 }
 
-.chat-drawer.open {
-  transform: translateX(0);
+@media (min-width: 769px) {
+  .chat-drawer {
+    position: relative;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 0;
+    min-width: 0;
+    transform: none;
+    transition: width 0.3s cubic-bezier(0.2, 0, 0, 1), min-width 0.3s cubic-bezier(0.2, 0, 0, 1);
+    overflow: hidden;
+    border-left: none;
+    box-shadow: none;
+    z-index: 20;
+    flex-shrink: 0;
+  }
+
+  .chat-drawer.open {
+    width: 360px;
+    min-width: 360px;
+    border-left: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-drawer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.3, 0, 0.2, 1);
+    z-index: 60;
+    box-shadow: none;
+    border-left: none;
+  }
+
+  .chat-drawer.open {
+    transform: translateX(0);
+  }
 }
 
 .chat-header {
@@ -1863,13 +1920,15 @@ body.in-call-mode .brand-subtitle {
 }
 
 /* ==========================================================================
-   10. RESPONSIVE BREAKPOINTS (Mobile & Tablet Perfection)
+   10. RESPONSIVE BREAKPOINTS (Flawless on ALL Mobile, Tablet & Desktop)
    ========================================================================== */
+
+/* Tablets & Small Desktops (<= 960px) */
 @media (max-width: 960px) {
   .hero-container {
     grid-template-columns: 1fr;
-    gap: 40px;
-    padding-top: 36px;
+    gap: 32px;
+    padding: 36px 20px 28px;
   }
 
   .hero-text-col {
@@ -1889,15 +1948,49 @@ body.in-call-mode .brand-subtitle {
     text-align: left;
   }
 
+  .hero-hub-box {
+    max-width: 540px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
   .guide-cards {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
+/* Tablets (641px - 768px) */
+@media (max-width: 768px) and (min-width: 641px) {
+  .hero-headline {
+    font-size: 2.2rem;
+  }
+
+  .local-pip-box {
+    top: 14px;
+    right: 14px;
+    width: 110px;
+    height: 154px;
+    border-radius: 16px;
+  }
+
+  .ctrl-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .ctrl-btn.btn-hangup {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* Mobile Phones (<= 640px) */
 @media (max-width: 640px) {
   .main-header {
     padding: 8px 12px;
     height: 56px;
+    overflow: hidden;
   }
 
   .brand-logo-img {
@@ -1924,18 +2017,15 @@ body.in-call-mode .brand-subtitle {
     flex-shrink: 0;
   }
 
-  /* Hide redundant items on mobile header to prevent horizontal clipping */
-  #header-participants-pill {
-    display: none !important;
-  }
-
-  #btn-header-share {
+  #header-participants-pill,
+  #btn-header-share,
+  #header-encrypted-pill {
     display: none !important;
   }
 
   .call-timer-pill {
     padding: 4px 8px;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     gap: 4px;
     white-space: nowrap;
   }
@@ -1959,18 +2049,18 @@ body.in-call-mode .brand-subtitle {
   }
 
   .hero-container {
-    padding: 20px 16px;
+    padding: 20px 14px;
     gap: 20px;
   }
 
   .hero-headline {
-    font-size: 1.95rem;
+    font-size: clamp(1.8rem, 6vw, 2.2rem);
     line-height: 1.2;
     margin-bottom: 12px;
   }
 
   .hero-description {
-    font-size: 0.96rem;
+    font-size: 0.95rem;
     line-height: 1.5;
     margin-bottom: 20px;
   }
@@ -1985,7 +2075,7 @@ body.in-call-mode .brand-subtitle {
   }
 
   .hero-hub-box {
-    padding: 22px 18px;
+    padding: 20px 16px;
     gap: 16px;
     border-radius: var(--radius-md);
   }
@@ -1996,17 +2086,19 @@ body.in-call-mode .brand-subtitle {
 
   .btn-emerald-cta {
     padding: 12px 18px;
-    font-size: 0.96rem;
+    font-size: 0.95rem;
   }
 
   .code-entry-row input {
     padding: 8px 12px;
     font-size: 0.9rem;
+    min-width: 0;
   }
 
   .btn-pill-join {
     padding: 0 16px;
     font-size: 0.88rem;
+    flex-shrink: 0;
   }
 
   /* In-Call Mobile Layout */
@@ -2042,16 +2134,16 @@ body.in-call-mode .brand-subtitle {
     gap: 6px;
   }
 
-  /* Top-Right Portrait Self-View on Mobile (FaceTime / WhatsApp Style) */
+  /* Top-Right Portrait Self-View on Mobile (WhatsApp Video Call Style) */
   .local-pip-box {
-    top: 12px;
-    right: 12px;
+    top: 10px;
+    right: 10px;
     bottom: auto;
     left: auto;
-    width: 96px;
-    height: 138px;
+    width: 94px;
+    height: 136px;
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     border: 2px solid var(--emerald-500);
     z-index: 35;
   }
@@ -2076,18 +2168,18 @@ body.in-call-mode .brand-subtitle {
     right: 6px;
   }
 
-  /* Floating Bottom Controls Pill - Perfectly proportioned for touch */
+  /* Floating Bottom Controls Pill */
   .controls-dock-wrap {
-    padding: 6px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 6px calc(12px + env(safe-area-inset-bottom, 0px));
     z-index: 45;
   }
 
   .controls-pill {
     gap: 6px;
     padding: 6px 10px;
-    max-width: 98vw;
-    background: rgba(15, 23, 42, 0.94);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-width: calc(100vw - 12px);
+    background: rgba(17, 27, 33, 0.94);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   }
 
   .ctrl-btn {
@@ -2116,9 +2208,9 @@ body.in-call-mode .brand-subtitle {
 
   /* Waiting banner on mobile */
   .waiting-banner {
-    padding: 24px 18px;
+    padding: 24px 16px;
     margin: auto;
-    max-width: 92%;
+    max-width: 94%;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(21, 30, 46, 0.88);
@@ -2126,7 +2218,7 @@ body.in-call-mode .brand-subtitle {
   }
 
   .waiting-banner p {
-    font-size: 0.95rem;
+    font-size: 0.94rem;
     line-height: 1.55;
     margin-bottom: 20px;
     color: #e2e8f0;
@@ -2144,10 +2236,6 @@ body.in-call-mode .brand-subtitle {
     font-size: 0.94rem;
   }
 
-  .chat-drawer {
-    width: 100%;
-  }
-
   .reactions-picker {
     bottom: 74px;
     padding: 6px 10px;
@@ -2160,19 +2248,19 @@ body.in-call-mode .brand-subtitle {
   }
 }
 
-/* Extra Small Phones (iPhone SE, Galaxy A series, Fold closed < 380px) */
+/* Extra Small Phones (iPhone SE, Galaxy A series, Fold cover < 380px) */
 @media (max-width: 380px) {
   .main-header {
-    padding: 6px 10px;
+    padding: 6px 8px;
   }
 
   .brand-title {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
 
   .brand-logo-img {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
   }
 
   .controls-pill {
@@ -2196,8 +2284,66 @@ body.in-call-mode .brand-subtitle {
   }
 
   .local-pip-box {
-    width: 86px;
-    height: 118px;
-    right: 8px;
+    width: 82px;
+    height: 114px;
+    right: 6px;
+    top: 6px;
+  }
+
+  .code-entry-row input {
+    padding: 6px 8px;
+    font-size: 0.84rem;
+  }
+
+  .btn-pill-join {
+    padding: 0 12px;
+    font-size: 0.82rem;
+  }
+}
+
+/* Ultra Small Screens (Fold cover display 280px - 320px) */
+@media (max-width: 320px) {
+  .hero-headline {
+    font-size: 1.6rem;
+  }
+
+  .hero-hub-box {
+    padding: 16px 12px;
+  }
+
+  .btn-emerald-cta {
+    font-size: 0.88rem;
+    padding: 10px 12px;
+  }
+
+  .controls-pill {
+    gap: 3px;
+    padding: 4px;
+  }
+
+  .ctrl-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ctrl-btn.btn-hangup {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ctrl-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .local-pip-box {
+    width: 72px;
+    height: 100px;
+    right: 4px;
+    top: 4px;
+  }
+
+  #header-call-timer {
+    display: none !important;
   }
 }

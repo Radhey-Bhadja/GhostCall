@@ -74,6 +74,8 @@ const UI = {
   localTagName: document.getElementById('local-tag-name'),
   localMicMini: document.getElementById('local-mic-mini'),
   btnCameraFlip: document.getElementById('btn-camera-flip'),
+  btnCtrlFlip: document.getElementById('btn-ctrl-flip'),
+  headerEncryptedPill: document.getElementById('header-encrypted-pill'),
 
   // Header
   appHeader: document.getElementById('app-header'),
@@ -140,16 +142,22 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Watch Navigation & Back Button Events
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (e) => {
   if (AppState.suppressNavConfirm) return;
 
-  // Case 1: User is in chat drawer and clicks Back -> close chat drawer & stay in video call!
+  // Case 1: User is in chat drawer and clicks Back -> smoothly close chat drawer & stay in video call!
   if (AppState.isChatOpen) {
     closeChatDrawer(false);
     return;
   }
 
-  // Case 2: User is in active call and clicks Back -> show "Are you sure to end call?" modal!
+  // Case 2: History popped back from inChat state -> smoothly close chat & stay in video call!
+  if (e && e.state && e.state.inChat) {
+    closeChatDrawer(false);
+    return;
+  }
+
+  // Case 3: User is in active call and clicks Back -> show "Are you sure to end call?" modal!
   if (AppState.isCallActive && AppState.currentRoomId) {
     window.location.hash = `room-${AppState.currentRoomId}`;
     try {
@@ -219,8 +227,9 @@ function initUserPreferences() {
   }
 
   // Detect mobile device to show camera flip button
-  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && UI.btnCameraFlip) {
-    UI.btnCameraFlip.style.display = 'flex';
+  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    if (UI.btnCameraFlip) UI.btnCameraFlip.style.display = 'flex';
+    if (UI.btnCtrlFlip) UI.btnCtrlFlip.style.display = 'flex';
   }
 }
 
@@ -263,6 +272,7 @@ function showHeroView() {
   if (UI.participantsPill) UI.participantsPill.style.display = 'none';
   UI.btnHeaderShare.style.display = 'none';
   UI.headerCallTimer.style.display = 'none';
+  if (UI.headerEncryptedPill) UI.headerEncryptedPill.style.display = 'none';
   stopCallTimer();
   stopAudioAnalysis();
 }
@@ -275,6 +285,7 @@ function showCallView() {
   if (UI.participantsPill) UI.participantsPill.style.display = 'inline-flex';
   UI.btnHeaderShare.style.display = 'inline-flex';
   UI.headerCallTimer.style.display = 'inline-flex';
+  if (UI.headerEncryptedPill) UI.headerEncryptedPill.style.display = 'inline-flex';
 
   if (UI.localVideoBox) {
     UI.localVideoBox.style.left = '';
@@ -1342,16 +1353,21 @@ function openChatDrawer() {
     UI.chatDrawer.classList.add('open');
     UI.chatDrawer.setAttribute('aria-hidden', 'false');
   }
+  if (UI.btnChat) {
+    UI.btnChat.classList.add('active-state');
+  }
   AppState.unreadChatCount = 0;
   if (UI.chatUnreadBadge) UI.chatUnreadBadge.style.display = 'none';
   if (UI.chatInput) {
     setTimeout(() => UI.chatInput.focus(), 150);
   }
 
-  // Push history state so browser/hardware back button returns to video call
-  try {
-    history.pushState({ inChat: true, room: AppState.currentRoomId }, '', window.location.href);
-  } catch (e) {}
+  // Push history state on mobile devices so hardware back button returns to video call
+  if (window.innerWidth <= 768) {
+    try {
+      history.pushState({ inChat: true, room: AppState.currentRoomId }, '', window.location.href);
+    } catch (e) {}
+  }
 }
 
 function closeChatDrawer(shouldPopHistory = false) {
@@ -1361,18 +1377,27 @@ function closeChatDrawer(shouldPopHistory = false) {
     UI.chatDrawer.classList.remove('open');
     UI.chatDrawer.setAttribute('aria-hidden', 'true');
   }
+  if (UI.btnChat) {
+    UI.btnChat.classList.remove('active-state');
+  }
   if (document.activeElement && UI.chatDrawer && UI.chatDrawer.contains(document.activeElement)) {
     document.activeElement.blur();
   }
 
+  // Smoothly pop inChat history if requested, suppressing any confirmation dialog
   if (shouldPopHistory && history.state && history.state.inChat) {
+    AppState.suppressNavConfirm = true;
     try {
       history.back();
     } catch (e) {}
+    setTimeout(() => {
+      AppState.suppressNavConfirm = false;
+    }, 400);
   }
 }
 
 function handleChatBack() {
+  // Closes chat and returns directly to video call — NEVER shows "Are you sure to end call?" modal!
   closeChatDrawer(true);
 }
 

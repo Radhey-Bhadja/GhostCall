@@ -35,6 +35,10 @@
         <span class="timer-dot"></span>
         <span id="call-duration-text">00:00</span>
       </div>
+      <div class="encrypted-badge-pill" id="header-encrypted-pill" style="display: none;" title="Calls and messages are end-to-end encrypted">
+        <span class="enc-lock-icon">🔒</span>
+        <span class="enc-label">Encrypted</span>
+      </div>
       <div class="room-badge-pill" id="header-participants-pill" style="display: none;">
         <span id="participant-count-text">1 in call</span>
       </div>
@@ -168,7 +172,7 @@
   </main>
 
   <!-- =========================================================================
-       ACTIVE VIDEO CALL ROOM VIEW
+       ACTIVE VIDEO CALL ROOM VIEW (WhatsApp Style Video + Chat Section)
        ========================================================================= -->
   <section id="call-view" class="call-view-container" style="display: none;">
     <!-- Main Calling Canvas -->
@@ -210,9 +214,95 @@
 
       <!-- Floating Reactions Layer -->
       <div id="reactions-container" class="reactions-layer" aria-hidden="true"></div>
+
+      <!-- Floating Reactions Picker Popover -->
+      <div id="reactions-picker" class="reactions-picker" style="display: none;">
+        <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
+        <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+        <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+        <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+        <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
+        <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+      </div>
+
+      <!-- Bottom Controls Floating Dock (WhatsApp Call Bar) -->
+      <footer class="controls-dock-wrap" id="controls-dock">
+        <div class="controls-pill">
+          <!-- Mic Toggle -->
+          <button class="ctrl-btn active-state" id="btn-mic" onclick="toggleMicrophone()" title="Toggle Microphone (M)" aria-label="Toggle Microphone">
+            <svg class="ctrl-icon" id="icon-mic-on" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
+            </svg>
+            <svg class="ctrl-icon" id="icon-mic-off" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+              <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
+            </svg>
+            <span class="btn-label" id="label-mic">Mic</span>
+          </button>
+
+          <!-- Camera Toggle -->
+          <button class="ctrl-btn active-state" id="btn-cam" onclick="toggleCamera()" title="Toggle Camera (V)" aria-label="Toggle Camera">
+            <svg class="ctrl-icon" id="icon-cam-on" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+            </svg>
+            <svg class="ctrl-icon" id="icon-cam-off" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+              <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
+            </svg>
+            <span class="btn-label" id="label-cam">Camera</span>
+          </button>
+
+          <!-- Camera Flip Button (Mobile/Tablet friendly) -->
+          <button class="ctrl-btn" id="btn-ctrl-flip" onclick="flipCamera(event)" title="Flip Camera" aria-label="Flip Camera">
+            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8c0 2.2 1 4.2 2.5 5.7L4 18h6v-6l-2.4 2.4C6.4 13.2 6 11.7 6 10c0-3.3 2.7-6 6-6s6 2.7 6 6c0 1.7-.7 3.2-1.8 4.3l1.4 1.4C19.1 14.3 20 12.3 20 10z"/>
+            </svg>
+            <span class="btn-label" id="label-flip">Flip</span>
+          </button>
+
+          <!-- Screen Share -->
+          <button class="ctrl-btn" id="btn-screen" onclick="toggleScreenShare()" title="Share Screen (S)" aria-label="Share Screen">
+            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+            </svg>
+            <span class="btn-label" id="label-screen">Share</span>
+          </button>
+
+          <!-- Reactions Toggle -->
+          <button class="ctrl-btn" id="btn-reactions" onclick="toggleReactionsPicker(event)" title="Send Reaction" aria-label="Send Reaction">
+            <span class="emoji-icon">😊</span>
+            <span class="btn-label">React</span>
+          </button>
+
+          <!-- Chat Toggle (WhatsApp Chat Section) -->
+          <button class="ctrl-btn" id="btn-chat" onclick="toggleChatDrawer()" title="Open Chat" aria-label="Open Chat">
+            <div class="icon-with-badge">
+              <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span class="badge-count" id="chat-unread-badge" style="display: none;">0</span>
+            </div>
+            <span class="btn-label">Chat</span>
+          </button>
+
+          <!-- Share Link -->
+          <button class="ctrl-btn" onclick="handleShareAction()" title="Share Invite Link" aria-label="Share Link">
+            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+            <span class="btn-label">Invite</span>
+          </button>
+
+          <!-- Leave Call Button -->
+          <button class="ctrl-btn btn-hangup" id="btn-leave" onclick="confirmLeaveCall()" title="End Call" aria-label="End Call">
+            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+            </svg>
+            <span class="btn-label">End</span>
+          </button>
+        </div>
+      </footer>
     </div>
 
-    <!-- Slide-Out In-Call Chat Drawer (WhatsApp Style) -->
+    <!-- WhatsApp In-Call Chat Section (Side Panel on Desktop, Full Drawer on Mobile) -->
     <aside id="chat-drawer" class="chat-drawer" aria-hidden="true">
       <div class="chat-header">
         <button class="btn-chat-back" onclick="handleChatBack()" title="Back to Video Call" aria-label="Back to Video Call">
@@ -225,10 +315,10 @@
           <div class="chat-header-avatar">💬</div>
           <div class="chat-header-details">
             <h3 class="chat-header-title">In-Call Chat</h3>
-            <span class="chat-header-sub">End-to-end encrypted</span>
+            <span class="chat-header-sub">🔒 End-to-end encrypted</span>
           </div>
         </div>
-        <button class="btn-chat-close" onclick="handleChatBack()" aria-label="Close Chat" title="Close">✕</button>
+        <button class="btn-chat-close" onclick="handleChatBack()" aria-label="Back to Video Call" title="Back to Video Call">✕</button>
       </div>
 
       <div class="chat-messages" id="chat-messages-list">
@@ -249,84 +339,6 @@
         </button>
       </form>
     </aside>
-
-    <!-- Floating Reactions Picker Popover -->
-    <div id="reactions-picker" class="reactions-picker" style="display: none;">
-      <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
-      <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
-      <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
-      <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
-      <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
-      <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
-    </div>
-
-    <!-- Bottom Controls Floating Dock -->
-    <footer class="controls-dock-wrap" id="controls-dock">
-      <div class="controls-pill">
-        <!-- Mic Toggle -->
-        <button class="ctrl-btn active-state" id="btn-mic" onclick="toggleMicrophone()" title="Toggle Microphone (M)" aria-label="Toggle Microphone">
-          <svg class="ctrl-icon" id="icon-mic-on" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
-          </svg>
-          <svg class="ctrl-icon" id="icon-mic-off" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
-            <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
-          </svg>
-          <span class="btn-label" id="label-mic">Mic</span>
-        </button>
-
-        <!-- Camera Toggle -->
-        <button class="ctrl-btn active-state" id="btn-cam" onclick="toggleCamera()" title="Toggle Camera (V)" aria-label="Toggle Camera">
-          <svg class="ctrl-icon" id="icon-cam-on" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-          </svg>
-          <svg class="ctrl-icon" id="icon-cam-off" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
-            <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
-          </svg>
-          <span class="btn-label" id="label-cam">Camera</span>
-        </button>
-
-        <!-- Screen Share -->
-        <button class="ctrl-btn" id="btn-screen" onclick="toggleScreenShare()" title="Share Screen (S)" aria-label="Share Screen">
-          <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
-          </svg>
-          <span class="btn-label" id="label-screen">Share</span>
-        </button>
-
-        <!-- Reactions Toggle -->
-        <button class="ctrl-btn" id="btn-reactions" onclick="toggleReactionsPicker(event)" title="Send Reaction" aria-label="Send Reaction">
-          <span class="emoji-icon">😊</span>
-          <span class="btn-label">React</span>
-        </button>
-
-        <!-- Chat Drawer Toggle -->
-        <button class="ctrl-btn" id="btn-chat" onclick="toggleChatDrawer()" title="Open Chat" aria-label="Open Chat">
-          <div class="icon-with-badge">
-            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <span class="badge-count" id="chat-unread-badge" style="display: none;">0</span>
-          </div>
-          <span class="btn-label">Chat</span>
-        </button>
-
-        <!-- Share Link -->
-        <button class="ctrl-btn" onclick="handleShareAction()" title="Share Invite Link" aria-label="Share Link">
-          <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-          </svg>
-          <span class="btn-label">Invite</span>
-        </button>
-
-        <!-- Leave Call Button -->
-        <button class="ctrl-btn btn-hangup" id="btn-leave" onclick="confirmLeaveCall()" title="Leave Call" aria-label="Leave Call">
-          <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
-          </svg>
-          <span class="btn-label">Leave</span>
-        </button>
-      </div>
-    </footer>
   </section>
 
   <!-- =========================================================================
