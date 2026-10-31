@@ -55,7 +55,8 @@ const AppState = {
   isConnectingInitialHost: false,
   isSwappedVideo: false,
   isCallActive: false,
-  suppressNavConfirm: false
+  suppressNavConfirm: false,
+  joinedPeersNotified: new Set()
 };
 
 // 3. Cached DOM References
@@ -506,7 +507,7 @@ function initPeerMesh() {
     console.log('✅ Registered as Room Host:', id);
     updateParticipantsDisplay();
     bindPeerListeners();
-    showToast('Room created! Ready for friends');
+    notifyUserEvent(`You created & entered room #${AppState.currentRoomId}`, '🎉');
   });
 
   AppState.peer.on('error', (err) => {
@@ -535,6 +536,7 @@ function joinAsMeshGuest(hostPeerId) {
     console.log('✅ Registered as Guest Participant:', id);
     updateParticipantsDisplay();
     bindPeerListeners();
+    notifyUserEvent(`You entered room #${AppState.currentRoomId}`, '🎉');
 
     // 1. Establish Data Channel connection with host
     connectDataChannelToHost(hostPeerId);
@@ -670,14 +672,25 @@ function connectDataChannelToHost(hostId) {
 }
 
 function handlePeerDisconnect(peerId) {
+  const profile = AppState.peerProfiles.get(peerId);
+  const card = document.getElementById(`card-${peerId}`);
+  const tagEl = card?.querySelector('.tag-name-text');
+  const friendName = profile?.name || tagEl?.textContent || 'A friend';
+
   AppState.peerDataChannels.delete(peerId);
   AppState.peerProfiles.delete(peerId);
+
+  if (AppState.joinedPeersNotified && AppState.joinedPeersNotified.has(peerId)) {
+    AppState.joinedPeersNotified.delete(peerId);
+    notifyUserEvent(`${friendName} exited the room`, '🚪');
+  }
 
   if (AppState.isRoomHost) {
     AppState.activeParticipants.delete(peerId);
     broadcastMeshMessage({
       type: 'PEER_LEFT',
-      peerId: peerId
+      peerId: peerId,
+      name: friendName
     });
   }
 
@@ -719,17 +732,34 @@ function handleMeshSignaling(data, fromPeerId) {
     case 'PROFILE_UPDATE':
     case 'GUEST_JOINED':
       if (data.peerId) {
+        const friendName = data.name || 'Friend';
+        const isNewPeer = !AppState.joinedPeersNotified.has(data.peerId);
         AppState.peerProfiles.set(data.peerId, {
-          name: data.name || 'Friend',
+          name: friendName,
           videoEnabled: data.videoEnabled !== false,
           audioEnabled: data.audioEnabled !== false
         });
         updateRemoteTileProfile(data.peerId);
+
+        if (isNewPeer && data.peerId !== AppState.myPeerId) {
+          AppState.joinedPeersNotified.add(data.peerId);
+          notifyUserEvent(`${friendName} entered the room`, '👋');
+        }
       }
       break;
 
     case 'PEER_LEFT':
       if (data.peerId) {
+        const profile = AppState.peerProfiles.get(data.peerId);
+        const card = document.getElementById(`card-${data.peerId}`);
+        const tagEl = card?.querySelector('.tag-name-text');
+        const friendName = data.name || profile?.name || tagEl?.textContent || 'A friend';
+
+        if (AppState.joinedPeersNotified && AppState.joinedPeersNotified.has(data.peerId)) {
+          AppState.joinedPeersNotified.delete(data.peerId);
+          notifyUserEvent(`${friendName} exited the room`, '🚪');
+        }
+
         removeRemoteVideoTile(data.peerId);
       }
       break;
@@ -917,6 +947,11 @@ function renderRemoteVideoTile(peerId, stream) {
     card.appendChild(avatar);
     card.appendChild(tag);
     UI.videoGrid.appendChild(card);
+
+    if (AppState.joinedPeersNotified && !AppState.joinedPeersNotified.has(peerId)) {
+      AppState.joinedPeersNotified.add(peerId);
+      notifyUserEvent(`${profile.name || 'A friend'} entered the room`, '👋');
+    }
   } else {
     videoEl = card.querySelector('video');
   }
@@ -994,6 +1029,13 @@ function removeRemoteVideoTile(peerId) {
   AppState.audioAnalysers.delete(peerId);
 
   const card = document.getElementById(`card-${peerId}`);
+  if (AppState.joinedPeersNotified && AppState.joinedPeersNotified.has(peerId)) {
+    AppState.joinedPeersNotified.delete(peerId);
+    const profile = AppState.peerProfiles.get(peerId);
+    const tagEl = card?.querySelector('.tag-name-text');
+    const friendName = profile?.name || tagEl?.textContent || 'A friend';
+    notifyUserEvent(`${friendName} exited the room`, '🚪');
+  }
   if (card && card.parentNode) {
     card.parentNode.removeChild(card);
   }
@@ -1421,6 +1463,21 @@ function handleSendChatMessage(event) {
   });
 }
 
+
+function appendSystemNotification(text, icon = '') {
+  if (!UI.chatMessagesList) return;
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-system-msg';
+  msgDiv.innerHTML = `${icon ? `<span class="chat-system-lock">${icon}</span>` : ''}<span>${text}</span>`;
+  UI.chatMessagesList.appendChild(msgDiv);
+  UI.chatMessagesList.scrollTop = UI.chatMessagesList.scrollHeight;
+}
+
+function notifyUserEvent(text, icon = 'ℹ️') {
+  showToast(text, icon);
+  appendSystemNotification(text, icon);
+}
+
 function appendChatMessage(sender, text, isLocal, time) {
   if (!UI.chatMessagesList) return;
 
@@ -1659,6 +1716,7 @@ function exitCallToHero(cleanHash = true) {
   AppState.peerDataChannels.clear();
   AppState.peerProfiles.clear();
   AppState.activeParticipants.clear();
+  if (AppState.joinedPeersNotified) AppState.joinedPeersNotified.clear();
 
   if (AppState.peer) {
     AppState.peer.destroy();
@@ -1687,7 +1745,7 @@ function exitCallToHero(cleanHash = true) {
   }
 
   showHeroView();
-  showToast('You left the video call');
+  showToast('You exited the room', '👋');
 }
 
 /* ==========================================================================

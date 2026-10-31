@@ -389,12 +389,12 @@ body.in-call-mode .brand-subtitle {
   color: #ffffff;
 }
 
-/* Toast Notification */
+/* Toast Notification Pop-up */
 .toast-notification {
   position: fixed;
-  bottom: 92px;
+  top: 76px;
   left: 50%;
-  transform: translateX(-50%) translateY(20px);
+  transform: translateX(-50%) translateY(-16px);
   background: rgba(15, 23, 42, 0.94);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
