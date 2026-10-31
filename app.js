@@ -507,7 +507,7 @@ function initPeerMesh() {
     console.log('✅ Registered as Room Host:', id);
     updateParticipantsDisplay();
     bindPeerListeners();
-    notifyUserEvent(`You created & entered room #${AppState.currentRoomId}`, '🎉');
+    notifyUserEvent(`You created & entered room #${AppState.currentRoomId}`);
   });
 
   AppState.peer.on('error', (err) => {
@@ -536,7 +536,7 @@ function joinAsMeshGuest(hostPeerId) {
     console.log('✅ Registered as Guest Participant:', id);
     updateParticipantsDisplay();
     bindPeerListeners();
-    notifyUserEvent(`You entered room #${AppState.currentRoomId}`, '🎉');
+    notifyUserEvent(`You entered room #${AppState.currentRoomId}`);
 
     // 1. Establish Data Channel connection with host
     connectDataChannelToHost(hostPeerId);
@@ -682,7 +682,7 @@ function handlePeerDisconnect(peerId) {
 
   if (AppState.joinedPeersNotified && AppState.joinedPeersNotified.has(peerId)) {
     AppState.joinedPeersNotified.delete(peerId);
-    notifyUserEvent(`${friendName} exited the room`, '🚪');
+    notifyUserEvent(`${friendName} exited the room`);
   }
 
   if (AppState.isRoomHost) {
@@ -743,7 +743,7 @@ function handleMeshSignaling(data, fromPeerId) {
 
         if (isNewPeer && data.peerId !== AppState.myPeerId) {
           AppState.joinedPeersNotified.add(data.peerId);
-          notifyUserEvent(`${friendName} entered the room`, '👋');
+          notifyUserEvent(`${friendName} entered the room`);
         }
       }
       break;
@@ -950,7 +950,7 @@ function renderRemoteVideoTile(peerId, stream) {
 
     if (AppState.joinedPeersNotified && !AppState.joinedPeersNotified.has(peerId)) {
       AppState.joinedPeersNotified.add(peerId);
-      notifyUserEvent(`${profile.name || 'A friend'} entered the room`, '👋');
+      notifyUserEvent(`${profile.name || 'A friend'} entered the room`);
     }
   } else {
     videoEl = card.querySelector('video');
@@ -1464,18 +1464,18 @@ function handleSendChatMessage(event) {
 }
 
 
-function appendSystemNotification(text, icon = '') {
+function appendSystemNotification(text) {
   if (!UI.chatMessagesList) return;
   const msgDiv = document.createElement('div');
   msgDiv.className = 'chat-system-msg';
-  msgDiv.innerHTML = `${icon ? `<span class="chat-system-lock">${icon}</span>` : ''}<span>${text}</span>`;
+  msgDiv.innerHTML = `<span>${text}</span>`;
   UI.chatMessagesList.appendChild(msgDiv);
   UI.chatMessagesList.scrollTop = UI.chatMessagesList.scrollHeight;
 }
 
-function notifyUserEvent(text, icon = 'ℹ️') {
-  showToast(text, icon);
-  appendSystemNotification(text, icon);
+function notifyUserEvent(text) {
+  showToast(text);
+  appendSystemNotification(text);
 }
 
 function appendChatMessage(sender, text, isLocal, time) {
@@ -1529,7 +1529,7 @@ function appendChatMessage(sender, text, isLocal, time) {
       UI.chatUnreadBadge.textContent = AppState.unreadChatCount;
       UI.chatUnreadBadge.style.display = 'inline-block';
     }
-    showToast(`💬 ${sender}: ${text.length > 28 ? text.slice(0, 28) + '...' : text}`);
+    showToast(`${sender}: ${text.length > 28 ? text.slice(0, 28) + '...' : text}`);
   }
 }
 
@@ -1745,7 +1745,7 @@ function exitCallToHero(cleanHash = true) {
   }
 
   showHeroView();
-  showToast('You exited the room', '👋');
+  showToast('You exited the room');
 }
 
 /* ==========================================================================
@@ -1770,16 +1770,15 @@ async function retryPermissions() {
 }
 
 let toastTimer = null;
-function showToast(text, icon = '✅') {
+function showToast(text) {
   if (!UI.toastMsg) return;
-  if (UI.toastIcon) UI.toastIcon.textContent = icon;
   if (UI.toastText) UI.toastText.textContent = text;
 
   UI.toastMsg.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     UI.toastMsg.classList.remove('show');
-  }, 3200);
+  }, 3000);
 }
 
 /* ==========================================================================
