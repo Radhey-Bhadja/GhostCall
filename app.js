@@ -1489,7 +1489,7 @@ function toggleReactionsPicker(event) {
 // Close reaction picker on outside click
 document.addEventListener('click', (e) => {
   if (UI.reactionsPicker && UI.reactionsPicker.style.display === 'flex') {
-    if (!UI.reactionsPicker.contains(e.target) && !UI.btnReactions.contains(e.target)) {
+    if (!UI.reactionsPicker.contains(e.target) && (!UI.btnReactions || !UI.btnReactions.contains(e.target))) {
       UI.reactionsPicker.style.display = 'none';
     }
   }
