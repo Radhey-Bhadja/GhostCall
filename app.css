@@ -173,6 +173,7 @@ body.in-call-mode .brand-wrap {
   justify-content: flex-end;
   gap: 12px;
   flex: 1;
+  width: 100%;
 }
 
 body.in-call-mode .call-top-bar {
@@ -180,20 +181,42 @@ body.in-call-mode .call-top-bar {
   width: 100%;
 }
 
-.top-bar-left,
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+}
+
+.top-bar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .top-bar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
+  justify-content: flex-end;
+  flex: 1;
 }
 
-.top-bar-left {
-  flex-shrink: 0;
+.btn-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: btnSpinnerAnim 0.65s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 5px;
 }
 
-.top-bar-right {
-  flex-shrink: 0;
+@keyframes btnSpinnerAnim {
+  to { transform: rotate(360deg); }
 }
 
 /* Call Timer Pill */
@@ -2134,12 +2157,13 @@ body.in-call-mode .call-top-bar {
   }
 
   .call-top-bar {
-    gap: 8px;
+    gap: 6px;
   }
 
   .top-bar-left,
+  .top-bar-center,
   .top-bar-right {
-    gap: 6px;
+    gap: 5px;
   }
 
   .call-timer-pill {
@@ -2397,8 +2421,9 @@ body.in-call-mode .call-top-bar {
   }
 
   .top-bar-left,
+  .top-bar-center,
   .top-bar-right {
-    gap: 4px;
+    gap: 3px;
   }
 
   .call-timer-pill {

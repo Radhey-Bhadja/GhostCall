@@ -122,6 +122,8 @@ const UI = {
   // Modals
   modalLeave: document.getElementById('modal-leave'),
   modalShare: document.getElementById('modal-share'),
+  modalRoomNotFound: document.getElementById('modal-room-not-found'),
+  modalRoomErrorDesc: document.getElementById('modal-room-error-desc'),
   shareModalCode: document.getElementById('share-modal-code'),
   shareModalLinkInput: document.getElementById('share-modal-link-input'),
 
@@ -130,7 +132,8 @@ const UI = {
   heroAvatarPreview: document.getElementById('hero-avatar-preview'),
   roomInput: document.getElementById('input-room-code'),
   roomInputError: document.getElementById('room-input-error'),
-  codeEntryContainer: document.getElementById('code-entry-container')
+  codeEntryContainer: document.getElementById('code-entry-container'),
+  btnJoinRoom: document.getElementById('btn-join-room')
 };
 
 // 4. Lifecycle: Initialization & Event Listeners
@@ -168,14 +171,21 @@ window.addEventListener('popstate', (e) => {
 });
 
 // Watch URL hash navigation
-window.addEventListener('hashchange', () => {
+window.addEventListener('hashchange', async () => {
   if (AppState.suppressNavConfirm) return;
 
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').trim();
     if (extractedId && extractedId !== AppState.currentRoomId) {
-      startVideoCallRoom(extractedId, true);
+      const exists = await checkRoomExists(extractedId);
+      if (exists) {
+        startVideoCallRoom(extractedId, true);
+      } else {
+        window.location.hash = '';
+        showRoomInputError("Room doesn't exist or your code is wrong");
+        showRoomNotFoundModal("This room doesn't exist or your code is wrong.");
+      }
     }
   } else if (!hash && AppState.isCallActive && AppState.currentRoomId) {
     if (AppState.isChatOpen) {
@@ -231,6 +241,12 @@ function initUserPreferences() {
     if (UI.btnCameraFlip) UI.btnCameraFlip.style.display = 'flex';
     if (UI.btnCtrlFlip) UI.btnCtrlFlip.style.display = 'flex';
   }
+
+  if (UI.modalRoomNotFound) {
+    UI.modalRoomNotFound.addEventListener('click', (e) => {
+      if (e.target === UI.modalRoomNotFound) closeRoomNotFoundModal();
+    });
+  }
 }
 
 function updateHeroAvatarPreview(name) {
@@ -248,14 +264,24 @@ function updateLocalDisplayName(name) {
   }
 }
 
-function checkUrlHashOnLoad() {
+async function checkUrlHashOnLoad() {
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').trim();
     if (extractedId.length >= 3) {
-      // Direct room link join!
-      startVideoCallRoom(extractedId, true);
-      return;
+      showHeroView();
+      if (UI.roomInput) UI.roomInput.value = extractedId;
+      showToast('Checking room availability...');
+      const exists = await checkRoomExists(extractedId);
+      if (exists) {
+        startVideoCallRoom(extractedId, true);
+        return;
+      } else {
+        window.location.hash = '';
+        showRoomInputError("Room doesn't exist or your code is wrong");
+        showRoomNotFoundModal("This room doesn't exist or your code is wrong. Please check your room link or start a new call.");
+        return;
+      }
     }
   }
   showHeroView();
@@ -313,7 +339,7 @@ function createNewRoom() {
   startVideoCallRoom(randomRoomId, false);
 }
 
-function joinExistingRoom() {
+async function joinExistingRoom() {
   let val = UI.roomInput.value.trim();
   if (!val) {
     showRoomInputError('Please enter a 6-digit room code');
@@ -333,12 +359,118 @@ function joinExistingRoom() {
   val = val.replace(/[^a-zA-Z0-9_-]/g, '');
 
   if (val.length < 3) {
-    showRoomInputError('Code is too short! Check your invite code');
+    showRoomInputError("Room doesn't exist or your code is wrong");
+    showRoomNotFoundModal("Room doesn't exist or your code is wrong. Please enter a valid room code.");
     return;
   }
 
   clearRoomInputError();
-  startVideoCallRoom(val, true);
+
+  // Show loading state on Join button
+  const originalHtml = UI.btnJoinRoom ? UI.btnJoinRoom.innerHTML : '<span>Join</span>';
+  if (UI.btnJoinRoom) {
+    UI.btnJoinRoom.disabled = true;
+    UI.btnJoinRoom.innerHTML = '<span class="btn-spinner"></span><span>Checking...</span>';
+  }
+
+  try {
+    const exists = await checkRoomExists(val);
+    if (!exists) {
+      if (UI.btnJoinRoom) {
+        UI.btnJoinRoom.disabled = false;
+        UI.btnJoinRoom.innerHTML = originalHtml;
+      }
+      showRoomInputError("Room doesn't exist or your code is wrong");
+      showRoomNotFoundModal("This room doesn't exist or your code is wrong. Please check your room code and try again.");
+      return;
+    }
+
+    if (UI.btnJoinRoom) {
+      UI.btnJoinRoom.disabled = false;
+      UI.btnJoinRoom.innerHTML = originalHtml;
+    }
+    startVideoCallRoom(val, true);
+  } catch (err) {
+    if (UI.btnJoinRoom) {
+      UI.btnJoinRoom.disabled = false;
+      UI.btnJoinRoom.innerHTML = originalHtml;
+    }
+    showRoomInputError("Room doesn't exist or your code is wrong");
+    showRoomNotFoundModal("This room doesn't exist or your code is wrong. Please check your room code and try again.");
+  }
+}
+
+function checkRoomExists(roomId) {
+  return new Promise((resolve) => {
+    const hostPeerId = `ghostcall-${roomId}-host`;
+    let settled = false;
+    let probe = null;
+
+    const cleanup = () => {
+      if (probe) {
+        try { probe.destroy(); } catch (e) {}
+        probe = null;
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+        resolve(false);
+      }
+    }, 3800);
+
+    try {
+      probe = new Peer(rtcConfiguration);
+    } catch (e) {
+      clearTimeout(timeout);
+      resolve(false);
+      return;
+    }
+
+    probe.on('open', () => {
+      if (settled) return;
+      try {
+        const conn = probe.connect(hostPeerId, { reliable: false });
+
+        conn.on('open', () => {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timeout);
+            try { conn.close(); } catch (e) {}
+            cleanup();
+            resolve(true); // Host is online and answered connection!
+          }
+        });
+
+        conn.on('error', () => {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timeout);
+            cleanup();
+            resolve(false);
+          }
+        });
+      } catch (e) {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          cleanup();
+          resolve(false);
+        }
+      }
+    });
+
+    probe.on('error', (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeout);
+        cleanup();
+        resolve(false);
+      }
+    });
+  });
 }
 
 function showRoomInputError(msg) {
@@ -548,11 +680,8 @@ function joinAsMeshGuest(hostPeerId) {
       // Only fatal if host was unavailable during initial join
       if (AppState.isConnectingInitialHost) {
         AppState.isConnectingInitialHost = false;
-        showAlert('Room not found or host has left. You can start a new room instead.', true);
-        showToast('Room not found or host has left');
-        setTimeout(() => {
-          exitCallToHero(true);
-        }, 2200);
+        exitCallToHero(true);
+        showRoomNotFoundModal("This room doesn't exist or your code is wrong. Please check your room code and try again.");
       }
     } else {
       showAlert('Connection error: ' + (err.message || err.type), false);
@@ -1670,6 +1799,28 @@ function fallbackCopy(text, successMsg) {
 }
 
 /* ==========================================================================
+   Room Not Found Modal Helpers
+   ========================================================================== */
+function showRoomNotFoundModal(msg) {
+  if (UI.modalRoomErrorDesc && msg) {
+    UI.modalRoomErrorDesc.textContent = msg;
+  }
+  if (UI.modalRoomNotFound) {
+    UI.modalRoomNotFound.style.display = 'flex';
+  }
+}
+
+function closeRoomNotFoundModal() {
+  if (UI.modalRoomNotFound) {
+    UI.modalRoomNotFound.style.display = 'none';
+  }
+  if (UI.roomInput) {
+    UI.roomInput.focus();
+    UI.roomInput.select();
+  }
+}
+
+/* ==========================================================================
    Leave Call Modal & Rejoin Workflow
    ========================================================================== */
 function confirmLeaveCall() {
@@ -1994,27 +2145,15 @@ function initGlobalKeyboardShortcuts() {
       return;
     }
 
-    if (!AppState.currentRoomId) return;
-
-    switch (e.key.toLowerCase()) {
-      case 'm':
-        toggleMicrophone();
-        break;
-      case 'v':
-        toggleCamera();
-        break;
-      case 's':
-        toggleScreenShare();
-        break;
-      case 'c':
-        toggleChatDrawer();
-        break;
-      case 'escape':
-        closeLeaveModal();
-        closeShareModal();
-        if (AppState.isChatOpen) closeChatDrawer(false);
-        if (UI.reactionsPicker) UI.reactionsPicker.style.display = 'none';
-        break;
+    if (e.key === 'Escape') {
+      closeRoomNotFoundModal();
+      closeLeaveModal();
+      closeShareModal();
+      if (AppState.isChatOpen) closeChatDrawer(false);
+      if (UI.reactionsPicker) UI.reactionsPicker.style.display = 'none';
+      return;
     }
+
+    if (!AppState.currentRoomId) return;
   });
 }
