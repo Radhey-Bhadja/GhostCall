@@ -83,6 +83,7 @@ const UI = {
   callStage: document.getElementById('call-stage'),
   videoGrid: document.getElementById('video-grid'),
   waitingScreen: document.getElementById('waiting-screen'),
+  waitingLocalPreview: document.getElementById('waiting-local-preview'),
   localVideo: document.getElementById('local-video'),
   localVideoBox: document.getElementById('local-video-box'),
   localAvatar: document.getElementById('local-avatar'),
@@ -108,6 +109,10 @@ const UI = {
   btnCam: document.getElementById('btn-cam'),
   btnScreen: document.getElementById('btn-screen'),
   btnChat: document.getElementById('btn-chat'),
+  btnFullscreen: document.getElementById('btn-fullscreen'),
+  iconFsEnter: document.getElementById('icon-fs-enter'),
+  iconFsExit: document.getElementById('icon-fs-exit'),
+  labelFs: document.getElementById('label-fs'),
   chatUnreadBadge: document.getElementById('chat-unread-badge'),
   iconMicOn: document.getElementById('icon-mic-on'),
   iconMicOff: document.getElementById('icon-mic-off'),
@@ -152,6 +157,9 @@ window.addEventListener('DOMContentLoaded', () => {
   initUserPreferences();
   initDragPip();
   initGlobalKeyboardShortcuts();
+  initFullscreenHandlers();
+  initMobileAudioUnlock();
+  initStageFullscreenDoubleTap();
   checkUrlHashOnLoad();
 });
 
@@ -395,6 +403,7 @@ function showCallView() {
     UI.localVideoBox.classList.remove('is-expanded');
   }
 
+  updateStageWaitingVisibility();
   startCallTimer();
 }
 
@@ -692,7 +701,38 @@ function attachLocalStream(stream) {
     UI.localVideo.srcObject = stream;
     UI.localVideo.play().catch(e => console.warn('Local video play note:', e));
   }
+
+  // Also bind to full-screen waiting preview video
+  if (UI.waitingLocalPreview) {
+    UI.waitingLocalPreview.muted = true;
+    UI.waitingLocalPreview.playsInline = true;
+    UI.waitingLocalPreview.setAttribute('playsinline', '');
+    UI.waitingLocalPreview.setAttribute('webkit-playsinline', '');
+    UI.waitingLocalPreview.srcObject = stream;
+    UI.waitingLocalPreview.play().catch(e => console.warn('Waiting preview play note:', e));
+  }
+
+  updateStageWaitingVisibility();
   setupAudioAnalyser('local', stream);
+}
+
+function updateStageWaitingVisibility() {
+  const remoteCount = AppState.peerCalls ? AppState.peerCalls.size : 0;
+  if (remoteCount === 0) {
+    // Alone in room: show full-screen local preview on stage, hide corner PiP
+    if (UI.waitingScreen) UI.waitingScreen.style.display = 'flex';
+    if (UI.waitingLocalPreview && AppState.localStream) {
+      if (UI.waitingLocalPreview.srcObject !== AppState.localStream) {
+        UI.waitingLocalPreview.srcObject = AppState.localStream;
+      }
+      UI.waitingLocalPreview.play().catch(() => {});
+    }
+    if (UI.localVideoBox) UI.localVideoBox.style.display = 'none';
+  } else {
+    // Remote peers present: hide waiting banner, show corner PiP
+    if (UI.waitingScreen) UI.waitingScreen.style.display = 'none';
+    if (UI.localVideoBox) UI.localVideoBox.style.display = 'block';
+  }
 }
 
 // Fallback dummy stream with black canvas and silent audio track
@@ -1245,12 +1285,9 @@ function dynamicallyAdjustBitrates() {
    DOM Video Grid Rendering & Remote Tiles
    ========================================================================== */
 function renderRemoteVideoTile(peerId, stream) {
-  if (UI.waitingScreen) {
-    UI.waitingScreen.style.display = 'none';
-  }
-
   let card = document.getElementById(`card-${peerId}`);
   let videoEl;
+  let avatarEl;
 
   if (!card) {
     card = document.createElement('div');
@@ -1278,6 +1315,7 @@ function renderRemoteVideoTile(peerId, stream) {
       </div>
       <span class="avatar-name">${profile.name}</span>
     `;
+    avatarEl = avatar;
 
     // Member status dot on top of screen
     const dot = document.createElement('div');
@@ -1302,13 +1340,47 @@ function renderRemoteVideoTile(peerId, stream) {
     }
   } else {
     videoEl = card.querySelector('video');
+    avatarEl = card.querySelector('.avatar-placeholder');
   }
+
+  // Resilient video playback for all devices (handles mobile autoplay policies)
+  const startRemotePlayback = () => {
+    if (!videoEl) return;
+    const playPromise = videoEl.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Unmuted playback blocked on mobile device: start muted so video frames render immediately!
+        videoEl.muted = true;
+        videoEl.play().catch(err => console.warn('Muted video playback note:', err));
+      });
+    }
+  };
 
   if (videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
     videoEl.volume = 1.0;
-    videoEl.play().catch(e => console.log('Autoplay hint:', e));
+    startRemotePlayback();
   }
+
+  // Ensure video renders as soon as metadata or frames load
+  videoEl.onloadedmetadata = () => {
+    startRemotePlayback();
+    if (avatarEl) {
+      const profile = AppState.peerProfiles.get(peerId);
+      if (!profile || profile.videoEnabled !== false) {
+        avatarEl.style.display = 'none';
+      }
+    }
+  };
+
+  videoEl.onplaying = () => {
+    if (avatarEl) {
+      const profile = AppState.peerProfiles.get(peerId);
+      if (!profile || profile.videoEnabled !== false) {
+        avatarEl.style.display = 'none';
+      }
+    }
+  };
 
   // Setup active speaker audio analysis for remote stream
   setupAudioAnalyser(peerId, stream);
@@ -1316,17 +1388,31 @@ function renderRemoteVideoTile(peerId, stream) {
   // Track state listeners
   const videoTrack = stream.getVideoTracks()[0];
   if (videoTrack) {
-    const avatarEl = card.querySelector('.avatar-placeholder');
     const updateAvatarVisibility = () => {
       if (avatarEl) {
-        avatarEl.style.display = (!videoTrack.enabled || videoTrack.muted) ? 'flex' : 'none';
+        const profile = AppState.peerProfiles.get(peerId);
+        if (profile && profile.videoEnabled !== undefined) {
+          avatarEl.style.display = profile.videoEnabled ? 'none' : 'flex';
+        } else {
+          avatarEl.style.display = (!videoTrack.enabled) ? 'flex' : 'none';
+        }
       }
     };
-    videoTrack.onmute = updateAvatarVisibility;
-    videoTrack.onunmute = updateAvatarVisibility;
+    videoTrack.onmute = () => {
+      // Note: In WebRTC, muted can be temporary during network jitter
+      const profile = AppState.peerProfiles.get(peerId);
+      if (profile && profile.videoEnabled === false) {
+        if (avatarEl) avatarEl.style.display = 'flex';
+      }
+    };
+    videoTrack.onunmute = () => {
+      if (avatarEl) avatarEl.style.display = 'none';
+      startRemotePlayback();
+    };
     updateAvatarVisibility();
   }
 
+  updateStageWaitingVisibility();
   adjustGridLayout();
   updateParticipantsDisplay();
   updateRemoteTileProfile(peerId);
@@ -1396,9 +1482,7 @@ function removeRemoteVideoTile(peerId) {
     restoreVideoSwap();
   }
 
-  if (AppState.peerCalls.size === 0 && UI.waitingScreen) {
-    UI.waitingScreen.style.display = 'flex';
-  }
+  updateStageWaitingVisibility();
 
   adjustGridLayout();
   updateParticipantsDisplay();
@@ -1648,6 +1732,9 @@ async function toggleCamera() {
     if (UI.localVideo) {
       UI.localVideo.play().catch(() => {});
     }
+    if (UI.waitingLocalPreview) {
+      UI.waitingLocalPreview.play().catch(() => {});
+    }
     showToast('Camera turned on');
   } else {
     if (UI.btnCam) UI.btnCam.className = 'ctrl-btn inactive-state';
@@ -1734,6 +1821,19 @@ async function flipCamera(event) {
         UI.localVideo.classList.add('no-mirror');
       } else {
         UI.localVideo.classList.remove('no-mirror');
+      }
+    }
+
+    if (UI.waitingLocalPreview) {
+      UI.waitingLocalPreview.muted = true;
+      UI.waitingLocalPreview.playsInline = true;
+      UI.waitingLocalPreview.srcObject = AppState.localStream;
+      UI.waitingLocalPreview.play().catch(() => {});
+
+      if (AppState.facingMode === 'environment') {
+        UI.waitingLocalPreview.style.transform = 'none';
+      } else {
+        UI.waitingLocalPreview.style.transform = 'scaleX(-1)';
       }
     }
 
@@ -2192,6 +2292,15 @@ function exitCallToHero(cleanHash = true) {
   if (UI.localVideo) {
     UI.localVideo.srcObject = null;
   }
+  if (UI.waitingLocalPreview) {
+    UI.waitingLocalPreview.srcObject = null;
+  }
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    try {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } catch (e) {}
+  }
 
   // 2. Close peer calls & data channels
   AppState.peerCalls.forEach(call => {
@@ -2514,6 +2623,111 @@ function initGlobalKeyboardShortcuts() {
     } else if (key === 'c') {
       e.preventDefault();
       toggleChatDrawer();
+    } else if (key === 'f') {
+      e.preventDefault();
+      toggleFullScreen();
     }
   });
+}
+
+/* ==========================================================================
+   Full-Screen Mode & Device Controls (WhatsApp Experience)
+   ========================================================================== */
+function toggleFullScreen() {
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  if (!isFs) {
+    const docEl = document.documentElement;
+    if (docEl.requestFullscreen) {
+      docEl.requestFullscreen().catch(() => {});
+    } else if (docEl.webkitRequestFullscreen) {
+      docEl.webkitRequestFullscreen();
+    } else if (docEl.mozRequestFullScreen) {
+      docEl.mozRequestFullScreen();
+    } else if (docEl.msRequestFullscreen) {
+      docEl.msRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+}
+
+function initFullscreenHandlers() {
+  const updateFsUI = () => {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    if (UI.iconFsEnter && UI.iconFsExit && UI.labelFs) {
+      if (isFs) {
+        UI.iconFsEnter.style.display = 'none';
+        UI.iconFsExit.style.display = 'block';
+        UI.labelFs.textContent = 'Exit';
+      } else {
+        UI.iconFsEnter.style.display = 'block';
+        UI.iconFsExit.style.display = 'none';
+        UI.labelFs.textContent = 'Full';
+      }
+    }
+  };
+
+  document.addEventListener('fullscreenchange', updateFsUI);
+  document.addEventListener('webkitfullscreenchange', updateFsUI);
+  document.addEventListener('mozfullscreenchange', updateFsUI);
+  document.addEventListener('MSFullscreenChange', updateFsUI);
+}
+
+// Seamless audio unmuting on any first touch or user gesture (solves mobile autoplay restrictions)
+function initMobileAudioUnlock() {
+  const unlockAudio = () => {
+    // Unmute any remote videos that were forced muted for initial autoplay
+    const videos = document.querySelectorAll('#video-grid video');
+    videos.forEach((v) => {
+      if (v.id !== 'waiting-local-preview' && v.muted) {
+        v.muted = false;
+        v.play().catch(() => {});
+      }
+    });
+
+    // Ensure AudioContext is running if suspended
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      try {
+        const dummyCtx = new AudioContextClass();
+        if (dummyCtx.state === 'suspended') {
+          dummyCtx.resume().catch(() => {});
+        }
+      } catch (e) {}
+    }
+  };
+
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
+  window.addEventListener('click', unlockAudio, { passive: true });
+}
+
+// Double click or double tap on empty stage area to toggle Fullscreen
+function initStageFullscreenDoubleTap() {
+  const stage = UI.callStage || document.getElementById('call-stage');
+  if (!stage) return;
+
+  let lastTap = 0;
+  stage.addEventListener('dblclick', (e) => {
+    // Avoid double clicking on controls or buttons
+    if (e.target.closest('#controls-dock, .local-pip-box, .btn-emerald-cta, button')) return;
+    toggleFullScreen();
+  });
+
+  stage.addEventListener('touchend', (e) => {
+    if (e.target.closest('#controls-dock, .local-pip-box, .btn-emerald-cta, button')) return;
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      e.preventDefault();
+      toggleFullScreen();
+    }
+    lastTap = now;
+  }, { passive: false });
 }

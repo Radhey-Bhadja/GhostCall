@@ -199,17 +199,24 @@
     <div class="call-stage-area" id="call-stage">
       <!-- Dynamic Video Grid for Remote Participants -->
       <div id="video-grid" class="layout-1">
-        <!-- Waiting screen if room is empty -->
+        <!-- Waiting screen if room is empty: Full-screen self camera preview with floating invite card -->
         <div id="waiting-screen" class="waiting-banner">
-          <p>No one else is here yet. Click the button below to copy your room link and send it to your friends or family.</p>
-          <div class="waiting-actions">
-            <button class="btn-emerald-cta" onclick="handleShareAction()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Share Invite Link</span>
-            </button>
+          <video id="waiting-local-preview" class="waiting-preview-video" autoplay playsinline muted></video>
+          <div class="waiting-banner-card">
+            <div class="waiting-pulse-badge">
+              <span class="waiting-pulse-dot"></span>
+              <span>Room is Ready</span>
+            </div>
+            <p>You're the first one here. Share the 6-digit code or link to start talking.</p>
+            <div class="waiting-actions">
+              <button class="btn-emerald-cta" onclick="handleShareAction()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Share Invite Link</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -282,6 +289,17 @@
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
             </svg>
             <span class="btn-label">Invite</span>
+          </button>
+
+          <!-- Fullscreen Toggle -->
+          <button class="ctrl-btn" id="btn-fullscreen" onclick="toggleFullScreen()" title="Full Screen (F)" aria-label="Toggle Full Screen">
+            <svg class="ctrl-icon" id="icon-fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+            <svg class="ctrl-icon" id="icon-fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+            </svg>
+            <span class="btn-label" id="label-fs">Full</span>
           </button>
 
           <!-- Leave Call Button -->

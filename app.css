@@ -116,16 +116,29 @@ h1, h2, h3, h4, h5, h6, p, label {
   transition: background-color var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
-/* In Call Mode Header */
+/* In Call Mode Header: Floating translucent overlay on top of video call */
 body.in-call-mode .main-header {
-  background: rgba(15, 23, 42, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(11, 20, 26, 0.88) 0%, rgba(11, 20, 26, 0.45) 70%, transparent 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: none;
   color: var(--text-light);
-  padding: 8px 20px;
-  min-height: 54px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  padding: 10px 18px calc(14px + env(safe-area-inset-top, 0px));
+  min-height: auto;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+body.in-call-mode .call-top-bar,
+body.in-call-mode .room-badge-pill,
+body.in-call-mode .btn-header-action,
+body.in-call-mode .call-timer-pill {
+  pointer-events: auto;
 }
 
 /* REMOVE GhostCall brand in call mode */
@@ -889,8 +902,9 @@ body.in-call-mode .call-top-bar {
    ========================================================================== */
 .call-view-container {
   display: flex;
-  height: calc(100vh - 67px);
-  height: calc(100dvh - 67px);
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
   position: relative;
   flex-direction: row;
   background: var(--stage-bg);
@@ -900,7 +914,7 @@ body.in-call-mode .call-top-bar {
 .call-stage-area {
   flex: 1;
   position: relative;
-  padding: 10px;
+  padding: 4px;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
@@ -908,6 +922,7 @@ body.in-call-mode .call-top-bar {
   min-height: 0;
   min-width: 0;
   width: 100%;
+  height: 100%;
 }
 
 /* Video Grid Layouts */
@@ -1230,39 +1245,88 @@ body.in-call-mode .call-top-bar {
   transform: rotate(180deg);
 }
 
-/* Empty State / Waiting Screen */
+/* Empty State / Waiting Screen: Full-stage camera preview with sleek frosted overlay */
 .waiting-banner {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: var(--stage-card);
-  border: 2px dashed rgba(255, 255, 255, 0.16);
-  border-radius: var(--radius-lg);
-  padding: 44px 28px;
-  color: var(--text-light-muted);
+  background: #090d16;
+  border-radius: var(--radius-md);
+  overflow: hidden;
   height: 100%;
   width: 100%;
-  max-width: 580px;
-  margin: auto;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--stage-border);
 }
 
-.waiting-banner p {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  margin-bottom: 24px;
+.waiting-preview-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  background: #090d16;
+  z-index: 1;
+}
+
+.waiting-banner-card {
+  position: relative;
+  z-index: 2;
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-lg);
+  padding: 26px 22px;
   max-width: 440px;
-  color: #e2e8f0;
+  width: calc(100% - 32px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.waiting-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #34d399;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.waiting-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--emerald-500);
+  box-shadow: 0 0 10px var(--emerald-500);
+  animation: timerBlink 1.4s infinite;
+}
+
+.waiting-banner-card p {
+  font-size: 0.98rem;
+  line-height: 1.55;
+  margin-bottom: 20px;
+  color: #f1f5f9;
 }
 
 .waiting-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   width: 100%;
-  max-width: 380px;
 }
 
 .btn-whatsapp-cta {
@@ -2114,9 +2178,17 @@ body.in-call-mode .call-top-bar {
   }
 
   body.in-call-mode .main-header {
-    padding: 6px 10px;
-    min-height: 48px;
-    height: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding: 8px 10px calc(10px + env(safe-area-inset-top, 0px));
+    min-height: auto;
+    background: linear-gradient(180deg, rgba(11, 20, 26, 0.88) 0%, rgba(11, 20, 26, 0.45) 70%, transparent 100%);
+    border-bottom: none;
+    box-shadow: none;
+    pointer-events: none;
   }
 
   .brand-logo-img {
@@ -2232,19 +2304,26 @@ body.in-call-mode .call-top-bar {
     flex-shrink: 0;
   }
 
-  /* In-Call Mobile Layout */
+  /* In-Call Mobile Layout: Full-Screen Edge-to-Edge WhatsApp Experience */
   .call-view-container {
-    height: calc(100vh - 56px);
-    height: calc(100dvh - 56px);
+    height: 100vh;
+    height: 100dvh;
+    width: 100vw;
   }
 
   .call-stage-area {
-    padding: 8px;
+    padding: 0;
   }
 
   #video-grid {
-    gap: 8px;
-    padding: 2px;
+    gap: 3px;
+    padding: 0;
+  }
+
+  .video-card {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
   }
 
   #video-grid.layout-2 {
