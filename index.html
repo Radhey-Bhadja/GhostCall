@@ -30,36 +30,45 @@
     </div>
 
     <!-- Active Call Header Widgets -->
-    <div class="header-right">
-      <div class="call-timer-pill" id="header-call-timer" style="display: none;">
-        <span class="timer-dot"></span>
-        <span id="call-duration-text">00:00</span>
+    <div class="call-top-bar header-right" id="call-top-bar">
+      <!-- Left Call Status (Duration & Participants) -->
+      <div class="top-bar-left">
+        <div class="call-timer-pill" id="header-call-timer" style="display: none;" title="Call duration">
+          <span class="timer-dot"></span>
+          <span id="call-duration-text">00:00</span>
+        </div>
+        <div class="room-badge-pill participants-pill" id="header-participants-pill" style="display: none;" title="Participants in room">
+          <svg class="pill-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span id="participant-count-text">1 in room</span>
+        </div>
       </div>
-      <div class="encrypted-badge-pill" id="header-encrypted-pill" style="display: none;" title="Calls and messages are end-to-end encrypted">
-        <span class="enc-lock-icon">🔒</span>
-        <span class="enc-label">Encrypted</span>
+
+      <!-- Right Call Actions (Room Code & Share) -->
+      <div class="top-bar-right">
+        <div class="room-badge-pill room-code-pill" id="header-room-pill" style="display: none;" title="Click to copy Room Code" onclick="copyRoomCode()">
+          <span class="badge-label">Room:</span>
+          <strong id="display-room-id">------</strong>
+          <svg class="copy-mini-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </div>
+        <button class="btn-header-action" id="btn-header-share" onclick="handleShareAction()" style="display: none;" title="Share invite link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+          <span class="share-text">Share</span>
+        </button>
       </div>
-      <div class="room-badge-pill" id="header-participants-pill" style="display: none;">
-        <span id="participant-count-text">1 in call</span>
-      </div>
-      <div class="room-badge-pill" id="header-room-pill" style="display: none;" title="Click to copy Room Code" onclick="copyRoomCode()">
-        <span class="badge-label">Room:</span>
-        <strong id="display-room-id">------</strong>
-        <svg class="copy-mini-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-      </div>
-      <button class="btn-header-action" id="btn-header-share" onclick="handleShareAction()" style="display: none;" title="Share invite link">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18" cy="5" r="3"></circle>
-          <circle cx="6" cy="12" r="3"></circle>
-          <circle cx="18" cy="19" r="3"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-        <span>Share</span>
-      </button>
     </div>
   </header>
 

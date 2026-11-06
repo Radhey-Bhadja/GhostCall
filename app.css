@@ -97,7 +97,7 @@ button, input, select, textarea {
 .main-header {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-light);
-  padding: 12px 28px;
+  padding: 10px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -105,24 +105,37 @@ button, input, select, textarea {
   top: 0;
   z-index: 60;
   box-shadow: var(--shadow-xs);
-  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+  min-height: 58px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
+/* In Call Mode Header */
 body.in-call-mode .main-header {
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--stage-border);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-light);
+  padding: 8px 20px;
+  min-height: 54px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* REMOVE GhostCall brand in call mode */
+body.in-call-mode .brand-wrap {
+  display: none !important;
 }
 
 .brand-wrap {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
   user-select: none;
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .brand-wrap:hover {
@@ -136,103 +149,77 @@ body.in-call-mode .main-header {
 }
 
 .brand-logo-img {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   object-fit: cover;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
 }
 
-body.in-call-mode .brand-logo-img {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
 .brand-title {
-  font-size: 1.28rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--text-dark);
   letter-spacing: -0.025em;
   line-height: 1.2;
 }
 
-body.in-call-mode .brand-title {
-  color: #ffffff;
-}
-
-.brand-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+/* Call Top Bar Responsive Structure */
+.call-top-bar {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-weight: 500;
-}
-
-body.in-call-mode .brand-subtitle {
-  color: var(--text-light-muted);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--emerald-500);
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 0 0 2px var(--emerald-100);
-  animation: pulseDot 2s infinite ease-in-out;
-}
-
-@keyframes pulseDot {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-  }
-  50% {
-    transform: scale(1.15);
-    box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.12);
-  }
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
+  justify-content: flex-end;
   gap: 12px;
+  flex: 1;
 }
 
-/* Call Timer */
+body.in-call-mode .call-top-bar {
+  justify-content: space-between;
+  width: 100%;
+}
 
-.encrypted-badge-pill {
-  background: rgba(0, 168, 132, 0.12);
-  border: 1px solid rgba(0, 168, 132, 0.28);
-  border-radius: var(--radius-full);
-  padding: 5px 12px;
-  display: inline-flex;
+.top-bar-left,
+.top-bar-right {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #00a884;
-  white-space: nowrap;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
-.enc-lock-icon {
-  font-size: 0.82rem;
+.top-bar-left {
+  flex-shrink: 0;
 }
 
+.top-bar-right {
+  flex-shrink: 0;
+}
+
+/* Call Timer Pill */
 .call-timer-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-full);
   padding: 5px 12px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.84rem;
   font-weight: 600;
   color: #ffffff;
+  user-select: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.call-timer-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .timer-dot {
@@ -240,73 +227,111 @@ body.in-call-mode .brand-subtitle {
   height: 6px;
   background: var(--danger-500);
   border-radius: 50%;
+  box-shadow: 0 0 6px var(--danger-500);
   animation: timerBlink 1.2s infinite;
 }
 
 @keyframes timerBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
 }
 
-/* Room ID Pill */
+/* Room & Participants Badges */
 .room-badge-pill {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-full);
-  padding: 5px 14px;
+  padding: 5px 12px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.86rem;
-  color: #ffffff;
-  cursor: pointer;
+  gap: 7px;
+  font-size: 0.84rem;
+  color: #f1f5f9;
   white-space: nowrap;
   flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all var(--transition-fast);
 }
 
-.room-badge-pill:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.28);
+.room-badge-pill.participants-pill {
+  color: #cbd5e1;
+}
+
+.room-badge-pill.participants-pill .pill-icon {
+  stroke: #94a3b8;
+  flex-shrink: 0;
+}
+
+.room-badge-pill.room-code-pill {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.24);
+  cursor: pointer;
+  user-select: none;
+}
+
+.room-badge-pill.room-code-pill:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.4);
   transform: translateY(-1px);
+}
+
+.room-badge-pill.room-code-pill:active {
+  transform: translateY(0);
+}
+
+.room-badge-pill .badge-label {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.8rem;
 }
 
 .room-badge-pill strong {
   font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 1px;
-  color: var(--emerald-200);
+  letter-spacing: 0.5px;
+  color: #34d399;
   font-weight: 700;
 }
 
 .copy-mini-icon {
-  stroke: var(--emerald-200);
+  stroke: #34d399;
   opacity: 0.85;
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
 }
 
-/* Header Action Button */
+.room-badge-pill.room-code-pill:hover .copy-mini-icon {
+  transform: scale(1.12);
+  opacity: 1;
+}
+
+/* Header Action Button (Share) */
 .btn-header-action {
-  background: var(--emerald-500);
+  background: linear-gradient(135deg, var(--emerald-500) 0%, #059669 100%);
   color: #ffffff;
-  font-weight: 700;
-  font-size: 0.88rem;
-  padding: 7px 16px;
+  font-weight: 600;
+  font-size: 0.84rem;
+  padding: 6px 14px;
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  box-shadow: 0 2px 8px var(--emerald-glow);
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-header-action:hover {
-  background: var(--emerald-600);
+  background: linear-gradient(135deg, var(--emerald-600) 0%, #047857 100%);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
 }
 
 .btn-header-action:active {
-  transform: scale(0.96);
+  transform: translateY(0);
 }
 
 /* ==========================================================================
@@ -2079,13 +2104,19 @@ body.in-call-mode .brand-subtitle {
 @media (max-width: 640px) {
   .main-header {
     padding: 8px 12px;
-    height: 56px;
-    overflow: hidden;
+    min-height: 52px;
+    box-sizing: border-box;
+  }
+
+  body.in-call-mode .main-header {
+    padding: 6px 10px;
+    min-height: 48px;
+    height: auto;
   }
 
   .brand-logo-img {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
   }
 
@@ -2102,28 +2133,26 @@ body.in-call-mode .brand-subtitle {
     display: none !important;
   }
 
-  .header-right {
-    gap: 6px;
-    flex-shrink: 0;
+  .call-top-bar {
+    gap: 8px;
   }
 
-  #header-participants-pill,
-  #btn-header-share,
-  #header-encrypted-pill {
-    display: none !important;
+  .top-bar-left,
+  .top-bar-right {
+    gap: 6px;
   }
 
   .call-timer-pill {
     padding: 4px 8px;
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     gap: 4px;
     white-space: nowrap;
   }
 
   .room-badge-pill {
-    padding: 4px 10px;
+    padding: 4px 9px;
     font-size: 0.8rem;
-    gap: 4px;
+    gap: 5px;
     white-space: nowrap;
   }
 
@@ -2136,6 +2165,12 @@ body.in-call-mode .brand-subtitle {
     font-size: 0.82rem;
     margin-right: 1px;
     color: var(--emerald-200);
+  }
+
+  .btn-header-action {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    gap: 5px;
   }
 
   .hero-container {
@@ -2344,6 +2379,10 @@ body.in-call-mode .brand-subtitle {
     padding: 6px 8px;
   }
 
+  body.in-call-mode .main-header {
+    padding: 5px 6px;
+  }
+
   .brand-title {
     font-size: 1rem;
   }
@@ -2351,6 +2390,40 @@ body.in-call-mode .brand-subtitle {
   .brand-logo-img {
     width: 28px;
     height: 28px;
+  }
+
+  .call-top-bar {
+    gap: 4px;
+  }
+
+  .top-bar-left,
+  .top-bar-right {
+    gap: 4px;
+  }
+
+  .call-timer-pill {
+    padding: 3px 7px;
+    font-size: 0.74rem;
+    gap: 3px;
+  }
+
+  .room-badge-pill {
+    padding: 3px 8px;
+    font-size: 0.76rem;
+    gap: 4px;
+  }
+
+  .btn-header-action {
+    padding: 4px 8px;
+  }
+
+  .btn-header-action .share-text {
+    display: none;
+  }
+
+  .participants-pill .pill-icon {
+    width: 12px;
+    height: 12px;
   }
 
   .controls-pill {
@@ -2433,7 +2506,21 @@ body.in-call-mode .brand-subtitle {
     top: 4px;
   }
 
-  #header-call-timer {
+  #header-participants-pill {
     display: none !important;
+  }
+
+  .call-timer-pill {
+    padding: 3px 6px;
+    font-size: 0.72rem;
+  }
+
+  .room-badge-pill.room-code-pill {
+    padding: 3px 7px;
+    font-size: 0.74rem;
+  }
+
+  .btn-header-action {
+    padding: 4px 7px;
   }
 }

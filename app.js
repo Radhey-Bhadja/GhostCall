@@ -76,7 +76,6 @@ const UI = {
   localMicMini: document.getElementById('local-mic-mini'),
   btnCameraFlip: document.getElementById('btn-camera-flip'),
   btnCtrlFlip: document.getElementById('btn-ctrl-flip'),
-  headerEncryptedPill: document.getElementById('header-encrypted-pill'),
 
   // Header
   appHeader: document.getElementById('app-header'),
@@ -273,7 +272,6 @@ function showHeroView() {
   if (UI.participantsPill) UI.participantsPill.style.display = 'none';
   UI.btnHeaderShare.style.display = 'none';
   UI.headerCallTimer.style.display = 'none';
-  if (UI.headerEncryptedPill) UI.headerEncryptedPill.style.display = 'none';
   stopCallTimer();
   stopAudioAnalysis();
 }
@@ -286,7 +284,6 @@ function showCallView() {
   if (UI.participantsPill) UI.participantsPill.style.display = 'inline-flex';
   UI.btnHeaderShare.style.display = 'inline-flex';
   UI.headerCallTimer.style.display = 'inline-flex';
-  if (UI.headerEncryptedPill) UI.headerEncryptedPill.style.display = 'inline-flex';
 
   if (UI.localVideoBox) {
     UI.localVideoBox.style.left = '';
