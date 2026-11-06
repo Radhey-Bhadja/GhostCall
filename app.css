@@ -900,10 +900,10 @@ body.in-call-mode .call-top-bar {
 .call-stage-area {
   flex: 1;
   position: relative;
-  padding: 16px;
+  padding: 10px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   overflow: hidden;
   min-height: 0;
   min-width: 0;
@@ -915,33 +915,18 @@ body.in-call-mode .call-top-bar {
   width: 100%;
   height: 100%;
   display: grid;
-  gap: 16px;
-  justify-content: center;
-  align-content: center;
+  gap: 6px;
   transition: all var(--transition-normal);
-  max-width: 1400px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-}
-
-#video-grid::-webkit-scrollbar {
-  width: 6px;
-}
-#video-grid::-webkit-scrollbar-track {
-  background: transparent;
-}
-#video-grid::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  overflow: hidden;
+  align-self: stretch;
+  justify-self: stretch;
+  min-height: 0;
+  min-width: 0;
 }
 
 #video-grid.layout-1 {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
-  max-width: 1100px;
-  max-height: 760px;
 }
 
 #video-grid.layout-2 {
@@ -953,10 +938,9 @@ body.in-call-mode .call-top-bar {
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
 }
+/* WhatsApp style: 3rd card spans full width of 2nd row */
 #video-grid.layout-3 .video-card:nth-child(3) {
-  grid-column: 1 / span 2;
-  max-width: 50%;
-  justify-self: center;
+  grid-column: 1 / -1;
 }
 
 #video-grid.layout-4 {
@@ -964,6 +948,7 @@ body.in-call-mode .call-top-bar {
   grid-template-rows: repeat(2, 1fr);
 }
 
+/* 5: 3-col grid, last 2 centered using 12-col subgrid trick */
 #video-grid.layout-5 {
   grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -983,46 +968,62 @@ body.in-call-mode .call-top-bar {
   grid-template-rows: repeat(2, 1fr);
 }
 
+/* 7: 4+3 arrangement using 12-col subgrid */
 #video-grid.layout-7 {
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(2, 1fr);
 }
-#video-grid.layout-7 .video-card {
-  grid-column: span 2;
-}
-#video-grid.layout-7 .video-card:nth-child(7) {
-  grid-column: 3 / span 2;
-}
+#video-grid.layout-7 .video-card:nth-child(1) { grid-column: 1 / span 3; }
+#video-grid.layout-7 .video-card:nth-child(2) { grid-column: 4 / span 3; }
+#video-grid.layout-7 .video-card:nth-child(3) { grid-column: 7 / span 3; }
+#video-grid.layout-7 .video-card:nth-child(4) { grid-column: 10 / span 3; }
+#video-grid.layout-7 .video-card:nth-child(5) { grid-column: 1 / span 4; grid-row: 2; }
+#video-grid.layout-7 .video-card:nth-child(6) { grid-column: 5 / span 4; grid-row: 2; }
+#video-grid.layout-7 .video-card:nth-child(7) { grid-column: 9 / span 4; grid-row: 2; }
 
+/* 8: 4+4 */
 #video-grid.layout-8 {
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-}
-#video-grid.layout-8 .video-card {
-  grid-column: span 2;
-}
-#video-grid.layout-8 .video-card:nth-child(7) {
-  grid-column: 2 / span 2;
-}
-#video-grid.layout-8 .video-card:nth-child(8) {
-  grid-column: 4 / span 2;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
 }
 
+/* 9: 3x3 */
 #video-grid.layout-9 {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
 }
 
-#video-grid.layout-10,
-#video-grid.layout-11,
+/* 10: 4+3+3 using 12-col */
+#video-grid.layout-10 {
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+#video-grid.layout-10 .video-card:nth-child(1) { grid-column: 1 / span 3; grid-row: 1; }
+#video-grid.layout-10 .video-card:nth-child(2) { grid-column: 4 / span 3; grid-row: 1; }
+#video-grid.layout-10 .video-card:nth-child(3) { grid-column: 7 / span 3; grid-row: 1; }
+#video-grid.layout-10 .video-card:nth-child(4) { grid-column: 10 / span 3; grid-row: 1; }
+#video-grid.layout-10 .video-card:nth-child(5) { grid-column: 3 / span 4; grid-row: 2; }
+#video-grid.layout-10 .video-card:nth-child(6) { grid-column: 7 / span 4; grid-row: 2; }
+#video-grid.layout-10 .video-card:nth-child(7) { grid-column: 1 / span 4; grid-row: 3; }
+#video-grid.layout-10 .video-card:nth-child(8) { grid-column: 5 / span 4; grid-row: 3; }
+#video-grid.layout-10 .video-card:nth-child(9) { grid-column: 9 / span 4; grid-row: 3; }
+
+/* 11: 4+4+3 */
+#video-grid.layout-11 {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+/* 12: 4x3 */
 #video-grid.layout-12 {
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
 }
 
+/* Many: auto-fill responsive */
 #video-grid.layout-many {
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  grid-auto-rows: minmax(170px, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: 1fr;
 }
 
 /* Remote Video Cards */
@@ -1040,8 +1041,6 @@ body.in-call-mode .call-top-bar {
   min-width: 0;
   width: 100%;
   height: 100%;
-  max-height: 100%;
-  aspect-ratio: 16 / 9;
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -2259,9 +2258,7 @@ body.in-call-mode .call-top-bar {
     gap: 6px;
   }
   #video-grid.layout-3 .video-card:nth-child(3) {
-    grid-column: 1 / span 2;
-    max-width: 65%;
-    justify-self: center;
+    grid-column: 1 / -1;
   }
 
   #video-grid.layout-4 {
@@ -2278,10 +2275,11 @@ body.in-call-mode .call-top-bar {
   #video-grid.layout-5 .video-card {
     grid-column: span 1;
   }
+  #video-grid.layout-5 .video-card:nth-child(4) {
+    grid-column: 1 / span 1;
+  }
   #video-grid.layout-5 .video-card:nth-child(5) {
-    grid-column: 1 / span 2;
-    max-width: 65%;
-    justify-self: center;
+    grid-column: 1 / -1;
   }
 
   #video-grid.layout-6 {
@@ -2295,13 +2293,18 @@ body.in-call-mode .call-top-bar {
     grid-template-rows: repeat(4, 1fr);
     gap: 6px;
   }
-  #video-grid.layout-7 .video-card {
+  #video-grid.layout-7 .video-card:nth-child(1),
+  #video-grid.layout-7 .video-card:nth-child(2),
+  #video-grid.layout-7 .video-card:nth-child(3),
+  #video-grid.layout-7 .video-card:nth-child(4),
+  #video-grid.layout-7 .video-card:nth-child(5),
+  #video-grid.layout-7 .video-card:nth-child(6) {
     grid-column: span 1;
+    grid-row: auto;
   }
   #video-grid.layout-7 .video-card:nth-child(7) {
-    grid-column: 1 / span 2;
-    max-width: 65%;
-    justify-self: center;
+    grid-column: 1 / -1;
+    grid-row: auto;
   }
 
   #video-grid.layout-8 {
@@ -2322,10 +2325,27 @@ body.in-call-mode .call-top-bar {
     grid-auto-rows: minmax(110px, 1fr);
     gap: 6px;
   }
+  /* Reset layout-7 and layout-10 desktop 12-col explicit placements on mobile */
+  #video-grid.layout-7 .video-card:nth-child(1),
+  #video-grid.layout-7 .video-card:nth-child(2),
+  #video-grid.layout-7 .video-card:nth-child(3),
+  #video-grid.layout-7 .video-card:nth-child(4),
+  #video-grid.layout-7 .video-card:nth-child(5),
+  #video-grid.layout-7 .video-card:nth-child(6),
+  #video-grid.layout-10 .video-card:nth-child(1),
+  #video-grid.layout-10 .video-card:nth-child(2),
+  #video-grid.layout-10 .video-card:nth-child(3),
+  #video-grid.layout-10 .video-card:nth-child(4),
+  #video-grid.layout-10 .video-card:nth-child(5),
+  #video-grid.layout-10 .video-card:nth-child(6),
+  #video-grid.layout-10 .video-card:nth-child(7),
+  #video-grid.layout-10 .video-card:nth-child(8),
+  #video-grid.layout-10 .video-card:nth-child(9) {
+    grid-column: auto;
+    grid-row: auto;
+  }
   #video-grid.layout-9 .video-card:nth-child(9) {
-    grid-column: 1 / span 2;
-    max-width: 65%;
-    justify-self: center;
+    grid-column: 1 / -1;
   }
 
   /* Top-Right Portrait Self-View on Mobile (WhatsApp Video Call Style) */
