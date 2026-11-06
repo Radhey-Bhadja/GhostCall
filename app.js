@@ -293,6 +293,18 @@ function initUserPreferences() {
       if (e.target === UI.modalRoomNotFound) closeRoomNotFoundModal();
     });
   }
+
+  if (UI.modalLeave) {
+    UI.modalLeave.addEventListener('click', (e) => {
+      if (e.target === UI.modalLeave) closeLeaveModal();
+    });
+  }
+
+  if (UI.modalShare) {
+    UI.modalShare.addEventListener('click', (e) => {
+      if (e.target === UI.modalShare) closeShareModal();
+    });
+  }
 }
 
 function updateHeroAvatarPreview(name) {
@@ -389,7 +401,7 @@ async function joinExistingRoom() {
   let val = UI.roomInput ? UI.roomInput.value.trim() : '';
   if (!val) {
     showRoomInputError('Please enter a 6-digit room code');
-    showRoomNotFoundModal('Please enter a 6-digit room code to join a call.');
+    showRoomNotFoundModal('Please enter a 6-digit room code to join a call.', 'Room Code Required');
     if (UI.roomInput) UI.roomInput.focus();
     return;
   }
@@ -406,7 +418,7 @@ async function joinExistingRoom() {
 
   if (val.length !== 6) {
     showRoomInputError('Room code must be exactly 6 digits');
-    showRoomNotFoundModal('Room code must be exactly 6 digits (numbers only). Please check your code and try again.');
+    showRoomNotFoundModal('Room code must be exactly 6 digits (numbers only). Please check your code and try again.', 'Invalid Room Code');
     if (UI.roomInput) {
       UI.roomInput.value = val;
       UI.roomInput.focus();
@@ -1385,14 +1397,20 @@ function toggleMicrophone() {
     UI.iconMicOn.style.display = 'block';
     UI.iconMicOff.style.display = 'none';
     UI.labelMic.textContent = 'Mic';
-    if (UI.localMicMini) UI.localMicMini.classList.remove('muted');
+    if (UI.localMicMini) {
+      UI.localMicMini.classList.remove('muted');
+      UI.localMicMini.title = 'You (Microphone on)';
+    }
     showToast('Microphone unmuted');
   } else {
     UI.btnMic.className = 'ctrl-btn inactive-state';
     UI.iconMicOn.style.display = 'none';
     UI.iconMicOff.style.display = 'block';
     UI.labelMic.textContent = 'Muted';
-    if (UI.localMicMini) UI.localMicMini.classList.add('muted');
+    if (UI.localMicMini) {
+      UI.localMicMini.classList.add('muted');
+      UI.localMicMini.title = 'You (Microphone muted)';
+    }
     showToast('Microphone muted');
   }
 
@@ -1863,10 +1881,11 @@ function startCallTimer() {
   clearInterval(AppState.callTimerInterval);
   AppState.callTimerInterval = setInterval(() => {
     const elapsedSec = Math.floor((Date.now() - AppState.callStartTime) / 1000);
-    const mins = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+    const hrs = Math.floor(elapsedSec / 3600);
+    const mins = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, '0');
     const secs = String(elapsedSec % 60).padStart(2, '0');
     if (UI.callDurationText) {
-      UI.callDurationText.textContent = `${mins}:${secs}`;
+      UI.callDurationText.textContent = hrs > 0 ? `${String(hrs).padStart(2, '0')}:${mins}:${secs}` : `${mins}:${secs}`;
     }
   }, 1000);
 }
@@ -1945,7 +1964,11 @@ function fallbackCopy(text, successMsg) {
 /* ==========================================================================
    Room Not Found Modal Helpers
    ========================================================================== */
-function showRoomNotFoundModal(msg) {
+function showRoomNotFoundModal(msg, title = "Room Doesn't Exist") {
+  const titleEl = document.getElementById('modal-room-error-title');
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
   if (UI.modalRoomErrorDesc && msg) {
     UI.modalRoomErrorDesc.textContent = msg;
   }
@@ -2320,5 +2343,21 @@ function initGlobalKeyboardShortcuts() {
     }
 
     if (!AppState.currentRoomId) return;
+
+    // Hotkeys when inside active call
+    const key = e.key.toLowerCase();
+    if (key === 'm') {
+      e.preventDefault();
+      toggleMicrophone();
+    } else if (key === 'v') {
+      e.preventDefault();
+      toggleCamera();
+    } else if (key === 's') {
+      e.preventDefault();
+      toggleScreenShare();
+    } else if (key === 'c') {
+      e.preventDefault();
+      toggleChatDrawer();
+    }
   });
 }

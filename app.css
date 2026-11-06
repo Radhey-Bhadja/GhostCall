@@ -191,6 +191,7 @@ body.in-call-mode .call-top-bar {
   align-items: center;
   justify-content: flex-start;
   flex: 1;
+  min-width: 0;
 }
 
 .top-bar-center {
@@ -206,6 +207,7 @@ body.in-call-mode .call-top-bar {
   align-items: center;
   justify-content: flex-end;
   flex: 1;
+  min-width: 0;
 }
 
 .btn-spinner {
