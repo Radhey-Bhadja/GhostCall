@@ -91,7 +91,6 @@ const UI = {
   btnMic: document.getElementById('btn-mic'),
   btnCam: document.getElementById('btn-cam'),
   btnScreen: document.getElementById('btn-screen'),
-  btnReactions: document.getElementById('btn-reactions'),
   btnChat: document.getElementById('btn-chat'),
   chatUnreadBadge: document.getElementById('chat-unread-badge'),
   iconMicOn: document.getElementById('icon-mic-on'),
@@ -114,10 +113,6 @@ const UI = {
   chatMessagesList: document.getElementById('chat-messages-list'),
   chatForm: document.getElementById('chat-form'),
   chatInput: document.getElementById('chat-input'),
-
-  // Reactions
-  reactionsContainer: document.getElementById('reactions-container'),
-  reactionsPicker: document.getElementById('reactions-picker'),
 
   // Modals
   modalLeave: document.getElementById('modal-leave'),
@@ -975,9 +970,6 @@ function handleMeshSignaling(data, fromPeerId) {
       appendChatMessage(data.senderName, data.text, false, data.time);
       break;
 
-    case 'REACTION':
-      triggerFloatingReaction(data.emoji);
-      break;
   }
 }
 
@@ -1059,13 +1051,29 @@ function configureCallParameters(call) {
 function tunePeerSenders(pc) {
   if (!pc || !pc.getSenders) return;
 
-  const participantCount = AppState.peerCalls.size + 1;
-  let maxVideoBitrate = AppState.isSharingScreen ? 3000000 : 2500000;
-  
-  if (participantCount >= 5) {
-    maxVideoBitrate = 800000;
-  } else if (participantCount >= 3) {
-    maxVideoBitrate = 1400000;
+  const totalParticipants = AppState.peerCalls.size + 1;
+  let maxVideoBitrate = 2500000;
+  let maxFramerate = 30;
+  let scaleDown = 1;
+
+  if (AppState.isSharingScreen) {
+    maxVideoBitrate = 3000000;
+    maxFramerate = 30;
+    scaleDown = 1;
+  } else if (totalParticipants >= 7) {
+    // 7+ participants: downscale resolution (e.g. 720p -> 360p) & cap framerate to eliminate multi-stream lag
+    maxVideoBitrate = 260000;
+    maxFramerate = 20;
+    scaleDown = 2;
+  } else if (totalParticipants >= 5) {
+    // 5-6 participants: optimize bandwidth and decoding load
+    maxVideoBitrate = 450000;
+    maxFramerate = 24;
+    scaleDown = 1.5;
+  } else if (totalParticipants >= 3) {
+    maxVideoBitrate = 950000;
+    maxFramerate = 30;
+    scaleDown = 1;
   }
 
   pc.getSenders().forEach((sender) => {
@@ -1076,6 +1084,8 @@ function tunePeerSenders(pc) {
           params.encodings = [{}];
         }
         params.encodings[0].maxBitrate = maxVideoBitrate;
+        params.encodings[0].maxFramerate = maxFramerate;
+        params.encodings[0].scaleResolutionDownBy = scaleDown;
         params.encodings[0].networkPriority = 'high';
         params.degradationPreference = AppState.isSharingScreen ? 'maintain-resolution' : 'maintain-framerate';
         sender.setParameters(params).catch(() => {});
@@ -1088,7 +1098,7 @@ function tunePeerSenders(pc) {
         if (!params.encodings || params.encodings.length === 0) {
           params.encodings = [{}];
         }
-        params.encodings[0].maxBitrate = 64000;
+        params.encodings[0].maxBitrate = totalParticipants >= 6 ? 40000 : 64000;
         params.encodings[0].networkPriority = 'high';
         sender.setParameters(params).catch(() => {});
       } catch (err) {}
@@ -1272,10 +1282,24 @@ function adjustGridLayout() {
     UI.videoGrid.classList.add('layout-1');
   } else if (remoteCount === 2) {
     UI.videoGrid.classList.add('layout-2');
-  } else if (remoteCount <= 4) {
+  } else if (remoteCount === 3) {
     UI.videoGrid.classList.add('layout-3');
-  } else {
+  } else if (remoteCount === 4) {
+    UI.videoGrid.classList.add('layout-4');
+  } else if (remoteCount === 5) {
     UI.videoGrid.classList.add('layout-5');
+  } else if (remoteCount === 6) {
+    UI.videoGrid.classList.add('layout-6');
+  } else if (remoteCount === 7) {
+    UI.videoGrid.classList.add('layout-7');
+  } else if (remoteCount === 8) {
+    UI.videoGrid.classList.add('layout-8');
+  } else if (remoteCount === 9) {
+    UI.videoGrid.classList.add('layout-9');
+  } else if (remoteCount <= 12) {
+    UI.videoGrid.classList.add('layout-12');
+  } else {
+    UI.videoGrid.classList.add('layout-many');
   }
 }
 
@@ -1291,8 +1315,12 @@ function updateParticipantsDisplay() {
 }
 
 /* ==========================================================================
-   Active Speaker Detection (AudioContext Analysis)
+   Active Speaker Detection (AudioContext Analysis - Performance Optimized)
    ========================================================================== */
+let audioAnalysisBuffer = null;
+let lastAudioAnalysisTime = 0;
+const speakingStateCache = new Map();
+
 function startAudioAnalysis() {
   if (AppState.isAudioAnalysisRunning) return;
 
@@ -1317,6 +1345,7 @@ function startAudioAnalysis() {
 function stopAudioAnalysis() {
   AppState.isAudioAnalysisRunning = false;
   AppState.audioAnalysers.clear();
+  speakingStateCache.clear();
   if (AppState.audioContext) {
     try { AppState.audioContext.close(); } catch (e) {}
     AppState.audioContext = null;
@@ -1340,39 +1369,53 @@ function setupAudioAnalyser(id, stream) {
   }
 }
 
-function analyzeAudioFrame() {
+function analyzeAudioFrame(now) {
   if (!AppState.isAudioAnalysisRunning) return;
 
-  const dataArray = new Uint8Array(128);
+  // Throttle analysis to ~9Hz (every 110ms) instead of 60fps to prevent multi-peer UI lag & frame drops
+  if (!now || now - lastAudioAnalysisTime >= 110) {
+    lastAudioAnalysisTime = now || performance.now();
 
-  AppState.audioAnalysers.forEach((analyser, id) => {
-    analyser.getByteFrequencyData(dataArray);
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) {
-      sum += dataArray[i];
+    if (!audioAnalysisBuffer) {
+      audioAnalysisBuffer = new Uint8Array(64);
     }
-    const avg = sum / dataArray.length;
-    const isSpeaking = avg > 25; // Volume threshold
 
-    if (id === 'local') {
-      if (UI.localVideoBox) {
-        if (isSpeaking && !AppState.isMicMuted) {
-          UI.localVideoBox.classList.add('is-speaking');
-        } else {
-          UI.localVideoBox.classList.remove('is-speaking');
+    AppState.audioAnalysers.forEach((analyser, id) => {
+      try {
+        analyser.getByteFrequencyData(audioAnalysisBuffer);
+        let sum = 0;
+        for (let i = 0; i < audioAnalysisBuffer.length; i++) {
+          sum += audioAnalysisBuffer[i];
         }
-      }
-    } else {
-      const card = document.getElementById(`card-${id}`);
-      if (card) {
-        if (isSpeaking) {
-          card.classList.add('is-speaking');
-        } else {
-          card.classList.remove('is-speaking');
+        const avg = sum / audioAnalysisBuffer.length;
+        const isSpeaking = avg > 26;
+        const wasSpeaking = speakingStateCache.get(id) || false;
+
+        // Only touch DOM classes if speaking state actually changed
+        if (isSpeaking !== wasSpeaking) {
+          speakingStateCache.set(id, isSpeaking);
+          if (id === 'local') {
+            if (UI.localVideoBox) {
+              if (isSpeaking && !AppState.isMicMuted) {
+                UI.localVideoBox.classList.add('is-speaking');
+              } else {
+                UI.localVideoBox.classList.remove('is-speaking');
+              }
+            }
+          } else {
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+              if (isSpeaking) {
+                card.classList.add('is-speaking');
+              } else {
+                card.classList.remove('is-speaking');
+              }
+            }
+          }
         }
-      }
-    }
-  });
+      } catch (err) {}
+    });
+  }
 
   requestAnimationFrame(analyzeAudioFrame);
 }
@@ -1821,55 +1864,6 @@ function appendChatMessage(sender, text, isLocal, time) {
   }
 }
 
-/* ==========================================================================
-   Emoji Reactions (Live Floating P2P Layer)
-   ========================================================================== */
-function toggleReactionsPicker(event) {
-  if (event) event.stopPropagation();
-  if (!UI.reactionsPicker) return;
-  const isShown = UI.reactionsPicker.style.display === 'flex';
-  UI.reactionsPicker.style.display = isShown ? 'none' : 'flex';
-}
-
-// Close reaction picker on outside click
-document.addEventListener('click', (e) => {
-  if (UI.reactionsPicker && UI.reactionsPicker.style.display === 'flex') {
-    if (!UI.reactionsPicker.contains(e.target) && (!UI.btnReactions || !UI.btnReactions.contains(e.target))) {
-      UI.reactionsPicker.style.display = 'none';
-    }
-  }
-});
-
-function sendReaction(emoji) {
-  if (UI.reactionsPicker) UI.reactionsPicker.style.display = 'none';
-  triggerFloatingReaction(emoji);
-
-  broadcastMeshMessage({
-    type: 'REACTION',
-    emoji: emoji
-  });
-}
-
-function triggerFloatingReaction(emoji) {
-  if (!UI.reactionsContainer) return;
-
-  const el = document.createElement('div');
-  el.className = 'floating-emoji';
-  el.textContent = emoji;
-
-  // Random horizontal positioning and wobble
-  const leftPercent = 20 + Math.random() * 60;
-  const wobblePx = (Math.random() - 0.5) * 80;
-
-  el.style.left = `${leftPercent}%`;
-  el.style.setProperty('--wobble', `${wobblePx}px`);
-
-  UI.reactionsContainer.appendChild(el);
-
-  setTimeout(() => {
-    if (el.parentNode) el.parentNode.removeChild(el);
-  }, 3100);
-}
 
 /* ==========================================================================
    Call Timer & Sharing Helpers
@@ -2338,7 +2332,6 @@ function initGlobalKeyboardShortcuts() {
       closeLeaveModal();
       closeShareModal();
       if (AppState.isChatOpen) closeChatDrawer(false);
-      if (UI.reactionsPicker) UI.reactionsPicker.style.display = 'none';
       return;
     }
 

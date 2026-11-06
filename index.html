@@ -225,16 +225,6 @@
         </button>
       </div>
 
-      <!-- Floating Reactions Layer & Picker -->
-      <div id="reactions-container" class="reactions-layer"></div>
-      <div id="reactions-picker" class="reactions-picker" style="display: none;">
-        <button class="reaction-btn" onclick="sendReaction('👍')" title="Thumbs up">👍</button>
-        <button class="reaction-btn" onclick="sendReaction('❤️')" title="Heart">❤️</button>
-        <button class="reaction-btn" onclick="sendReaction('😂')" title="Laughing">😂</button>
-        <button class="reaction-btn" onclick="sendReaction('🎉')" title="Party">🎉</button>
-        <button class="reaction-btn" onclick="sendReaction('🔥')" title="Fire">🔥</button>
-        <button class="reaction-btn" onclick="sendReaction('👏')" title="Clap">👏</button>
-      </div>
 
       <!-- Bottom Controls Floating Dock (WhatsApp Call Bar) -->
       <footer class="controls-dock-wrap" id="controls-dock">
@@ -280,16 +270,6 @@
             <span class="btn-label">Chat</span>
           </button>
 
-          <!-- Emoji Reactions Toggle -->
-          <button class="ctrl-btn" id="btn-reactions" onclick="toggleReactionsPicker(event)" title="Reactions" aria-label="Send Reaction">
-            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-              <line x1="9" y1="9" x2="9.01" y2="9"></line>
-              <line x1="15" y1="9" x2="15.01" y2="9"></line>
-            </svg>
-            <span class="btn-label">React</span>
-          </button>
 
           <!-- Share Link -->
           <button class="ctrl-btn" onclick="handleShareAction()" title="Share Invite Link" aria-label="Share Link">

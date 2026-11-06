@@ -920,6 +920,21 @@ body.in-call-mode .call-top-bar {
   align-content: center;
   transition: all var(--transition-normal);
   max-width: 1400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+#video-grid::-webkit-scrollbar {
+  width: 6px;
+}
+#video-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+#video-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
 }
 
 #video-grid.layout-1 {
@@ -934,16 +949,80 @@ body.in-call-mode .call-top-bar {
   grid-template-rows: 1fr;
 }
 
-#video-grid.layout-3,
+#video-grid.layout-3 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+#video-grid.layout-3 .video-card:nth-child(3) {
+  grid-column: 1 / span 2;
+  max-width: 50%;
+  justify-self: center;
+}
+
 #video-grid.layout-4 {
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
 }
 
-#video-grid.layout-5,
+#video-grid.layout-5 {
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+#video-grid.layout-5 .video-card {
+  grid-column: span 2;
+}
+#video-grid.layout-5 .video-card:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+#video-grid.layout-5 .video-card:nth-child(5) {
+  grid-column: 4 / span 2;
+}
+
 #video-grid.layout-6 {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
+}
+
+#video-grid.layout-7 {
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+#video-grid.layout-7 .video-card {
+  grid-column: span 2;
+}
+#video-grid.layout-7 .video-card:nth-child(7) {
+  grid-column: 3 / span 2;
+}
+
+#video-grid.layout-8 {
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+#video-grid.layout-8 .video-card {
+  grid-column: span 2;
+}
+#video-grid.layout-8 .video-card:nth-child(7) {
+  grid-column: 2 / span 2;
+}
+#video-grid.layout-8 .video-card:nth-child(8) {
+  grid-column: 4 / span 2;
+}
+
+#video-grid.layout-9 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+#video-grid.layout-10,
+#video-grid.layout-11,
+#video-grid.layout-12 {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+#video-grid.layout-many {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-auto-rows: minmax(170px, 1fr);
 }
 
 /* Remote Video Cards */
@@ -957,9 +1036,12 @@ body.in-call-mode .call-top-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 140px;
+  min-height: 0;
+  min-width: 0;
   width: 100%;
   height: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 10;
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -1717,88 +1799,7 @@ body.in-call-mode .call-top-bar {
   transform: scale(0.95);
 }
 
-/* ==========================================================================
-   8. FLOATING REACTIONS
-   ========================================================================== */
-.reactions-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 30;
-}
 
-.floating-emoji {
-  position: absolute;
-  bottom: 90px;
-  font-size: 2.2rem;
-  animation: floatReaction 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-
-@keyframes floatReaction {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.6);
-  }
-  15% {
-    opacity: 1;
-    transform: translateY(-30px) scale(1.2);
-  }
-  80% {
-    opacity: 0.9;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-280px) scale(1) translateX(var(--wobble, 0px));
-  }
-}
-
-.reactions-picker {
-  position: absolute;
-  bottom: 84px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 8px 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  display: flex;
-  gap: 8px;
-  box-shadow: var(--shadow-float);
-  z-index: 50;
-  animation: popInPicker 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes popInPicker {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.85) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) scale(1) translateY(0);
-  }
-}
-
-.reaction-btn {
-  background: none;
-  border: none;
-  font-size: 1.6rem;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  transition: transform var(--transition-fast);
-}
-
-.reaction-btn:hover {
-  transform: scale(1.3);
-}
-
-.reaction-btn:active {
-  transform: scale(0.9);
-}
 
 /* ==========================================================================
    9. MODALS & DIALOGS
@@ -2243,6 +2244,7 @@ body.in-call-mode .call-top-bar {
 
   #video-grid {
     gap: 8px;
+    padding: 2px;
   }
 
   #video-grid.layout-2 {
@@ -2250,18 +2252,79 @@ body.in-call-mode .call-top-bar {
     grid-template-rows: 1fr 1fr;
   }
 
-  #video-grid.layout-3,
+  #video-grid.layout-3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px;
+  }
+  #video-grid.layout-3 .video-card:nth-child(3) {
+    grid-column: 1 / span 2;
+    max-width: 65%;
+    justify-self: center;
+  }
+
   #video-grid.layout-4 {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 6px;
   }
 
-  #video-grid.layout-5,
+  #video-grid.layout-5 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 6px;
+  }
+  #video-grid.layout-5 .video-card {
+    grid-column: span 1;
+  }
+  #video-grid.layout-5 .video-card:nth-child(5) {
+    grid-column: 1 / span 2;
+    max-width: 65%;
+    justify-self: center;
+  }
+
   #video-grid.layout-6 {
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(3, 1fr);
     gap: 6px;
+  }
+
+  #video-grid.layout-7 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 6px;
+  }
+  #video-grid.layout-7 .video-card {
+    grid-column: span 1;
+  }
+  #video-grid.layout-7 .video-card:nth-child(7) {
+    grid-column: 1 / span 2;
+    max-width: 65%;
+    justify-self: center;
+  }
+
+  #video-grid.layout-8 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 6px;
+  }
+  #video-grid.layout-8 .video-card {
+    grid-column: span 1;
+  }
+
+  #video-grid.layout-9,
+  #video-grid.layout-10,
+  #video-grid.layout-11,
+  #video-grid.layout-12,
+  #video-grid.layout-many {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: minmax(110px, 1fr);
+    gap: 6px;
+  }
+  #video-grid.layout-9 .video-card:nth-child(9) {
+    grid-column: 1 / span 2;
+    max-width: 65%;
+    justify-self: center;
   }
 
   /* Top-Right Portrait Self-View on Mobile (WhatsApp Video Call Style) */
@@ -2374,16 +2437,7 @@ body.in-call-mode .call-top-bar {
     font-size: 0.94rem;
   }
 
-  .reactions-picker {
-    bottom: 74px;
-    padding: 6px 10px;
-    gap: 4px;
-  }
 
-  .reaction-btn {
-    font-size: 1.35rem;
-    padding: 2px 4px;
-  }
 }
 
 /* Extra Small Phones (iPhone SE, Galaxy A series, Fold cover < 380px) */
