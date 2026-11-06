@@ -585,18 +585,26 @@ async function startVideoCallRoom(roomId, isGuest = false) {
 }
 
 async function initLocalMediaStream() {
-  // Mobile-safe, universally supported progressive constraints (no restrictive min dimensions)
+  // Studio-grade, ultra-clear video and crystal-clear audio constraints
   const primaryConstraints = {
     video: {
       facingMode: AppState.facingMode || 'user',
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      frameRate: { ideal: 30, max: 30 }
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 30, max: 60 }
     },
     audio: {
-      echoCancellation: { ideal: true },
-      noiseSuppression: { ideal: true },
-      autoGainControl: { ideal: true }
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: { ideal: 48000 },
+      sampleSize: { ideal: 16 },
+      channelCount: { ideal: 2 },
+      googEchoCancellation: { ideal: true },
+      googAutoGainControl: { ideal: true },
+      googNoiseSuppression: { ideal: true },
+      googHighpassFilter: { ideal: true },
+      googAudioMirroring: { ideal: false }
     }
   };
 
@@ -605,17 +613,26 @@ async function initLocalMediaStream() {
     attachLocalStream(stream);
     dismissAlert();
   } catch (err) {
-    console.warn('Primary media constraints failed, trying basic fallback:', err);
+    console.warn('Primary 1080p/Studio media constraints failed, trying 720p HD fallback:', err);
     try {
-      // Basic fallback without resolution constraints
+      // 720p HD fallback with full audio processing
       const fallbackStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: AppState.facingMode || 'user' },
-        audio: true
+        video: {
+          facingMode: AppState.facingMode || 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       attachLocalStream(fallbackStream);
       dismissAlert();
     } catch (fallbackErr) {
-      console.warn('Fallback media failed, trying audio or video only:', fallbackErr);
+      console.warn('Fallback media failed, trying basic audio or video only:', fallbackErr);
       try {
         const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true });
         attachLocalStream(videoOnly);
@@ -776,7 +793,7 @@ function bindPeerListeners() {
       ? AppState.displayStream 
       : AppState.localStream;
 
-    incomingCall.answer(streamToSend);
+    incomingCall.answer(streamToSend, { sdpTransform: optimizeWebRtcSdp });
     configureCallParameters(incomingCall);
 
     incomingCall.on('stream', (remoteStream) => {
@@ -1004,7 +1021,7 @@ function establishMediaCall(remotePeerId) {
 
   if (!streamToSend) return;
 
-  const call = AppState.peer.call(remotePeerId, streamToSend);
+  const call = AppState.peer.call(remotePeerId, streamToSend, { sdpTransform: optimizeWebRtcSdp });
   if (!call) return;
 
   configureCallParameters(call);
@@ -1028,6 +1045,49 @@ function establishMediaCall(remotePeerId) {
 }
 
 /**
+ * Studio-Grade WebRTC SDP Optimization
+ * Forces Opus to 48kHz, stereo, in-band forward error correction, 128 kbps, constant bitrate,
+ * and sets high video application bitrate limits.
+ */
+function optimizeWebRtcSdp(sdp) {
+  if (!sdp || typeof sdp !== 'string') return sdp;
+
+  try {
+    // 1. Crystal Clear Opus Audio: 48kHz, 128 kbps, FEC enabled, CBR, stereo
+    const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000\/2/i);
+    if (opusMatch) {
+      const pt = opusMatch[1];
+      const fmtpRegex = new RegExp(`a=fmtp:${pt}\\s+([^\r\n]+)`, 'i');
+      const fmtpMatch = sdp.match(fmtpRegex);
+      const studioAudioParams = 'minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=128000;cbr=1;usedtx=0';
+
+      if (fmtpMatch) {
+        let existing = fmtpMatch[1];
+        ['minptime', 'useinbandfec', 'stereo', 'sprop-stereo', 'maxaveragebitrate', 'cbr', 'usedtx'].forEach(k => {
+          existing = existing.replace(new RegExp(`;?${k}=[^;]+`, 'g'), '');
+        });
+        const newFmtp = `a=fmtp:${pt} ${existing ? existing + ';' : ''}${studioAudioParams}`;
+        sdp = sdp.replace(fmtpMatch[0], newFmtp);
+      } else {
+        sdp = sdp.replace(opusMatch[0], `${opusMatch[0]}\r\na=fmtp:${pt} ${studioAudioParams}`);
+      }
+    }
+
+    // 2. High Definition Video Bandwidth: Allocate up to 3.5 Mbps in SDP
+    sdp = sdp.replace(/(m=video\s+\d+\s+[^/]+\/\S+[\r\n]+(?:c=[^\r\n]+[\r\n]+)?)/gi, (match) => {
+      if (!match.includes('b=AS:')) {
+        return `${match}b=AS:3500\r\n`;
+      }
+      return match.replace(/b=AS:\d+/i, 'b=AS:3500');
+    });
+  } catch (err) {
+    console.warn('SDP tuning note:', err);
+  }
+
+  return sdp;
+}
+
+/**
  * Configure WebRTC ICE connection and adaptive RTP bitrates
  */
 function configureCallParameters(call) {
@@ -1035,6 +1095,9 @@ function configureCallParameters(call) {
   const pc = call.peerConnection;
 
   pc.addEventListener('iceconnectionstatechange', () => {
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      tunePeerSenders(pc);
+    }
     if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
       console.warn(`ICE issue with ${call.peer}:`, pc.iceConnectionState);
       if (typeof pc.restartIce === 'function') {
@@ -1043,38 +1106,54 @@ function configureCallParameters(call) {
     }
   });
 
-  setTimeout(() => {
-    tunePeerSenders(pc);
-  }, 1000);
+  tunePeerSenders(pc);
+  setTimeout(() => tunePeerSenders(pc), 800);
+  setTimeout(() => tunePeerSenders(pc), 2500);
 }
 
 function tunePeerSenders(pc) {
   if (!pc || !pc.getSenders) return;
 
   const totalParticipants = AppState.peerCalls.size + 1;
-  let maxVideoBitrate = 2500000;
-  let maxFramerate = 30;
-  let scaleDown = 1;
+  let maxVideoBitrate;
+  let maxFramerate;
+  let scaleDown;
+  let degradationPref;
 
   if (AppState.isSharingScreen) {
-    maxVideoBitrate = 3000000;
+    // 4 Mbps ultra HD crystal-clear presentation/text
+    maxVideoBitrate = 4000000;
     maxFramerate = 30;
     scaleDown = 1;
+    degradationPref = 'maintain-resolution';
   } else if (totalParticipants >= 7) {
-    // 7+ participants: downscale resolution (e.g. 720p -> 360p) & cap framerate to eliminate multi-stream lag
-    maxVideoBitrate = 260000;
-    maxFramerate = 20;
-    scaleDown = 2;
-  } else if (totalParticipants >= 5) {
-    // 5-6 participants: optimize bandwidth and decoding load
-    maxVideoBitrate = 450000;
+    // 7+ participants: balanced, smooth multi-camera layout
+    maxVideoBitrate = 350000;
     maxFramerate = 24;
-    scaleDown = 1.5;
+    scaleDown = 1.75;
+    degradationPref = 'balanced';
+  } else if (totalParticipants >= 5) {
+    // 5-6 participants
+    maxVideoBitrate = 650000;
+    maxFramerate = 28;
+    scaleDown = 1.25;
+    degradationPref = 'balanced';
   } else if (totalParticipants >= 3) {
-    maxVideoBitrate = 950000;
+    // 3-4 participants: crisp HD video
+    maxVideoBitrate = 1400000;
     maxFramerate = 30;
     scaleDown = 1;
+    degradationPref = 'balanced';
+  } else {
+    // 1-on-1 call: razor-sharp Full HD (1080p/720p) at up to 3.5 Mbps!
+    maxVideoBitrate = 3500000;
+    maxFramerate = 30;
+    scaleDown = 1;
+    degradationPref = 'maintain-resolution';
   }
+
+  // Audio bitrate: 128 kbps (crystal-clear studio Opus) for normal rooms, 96 kbps for 6+ rooms
+  const maxAudioBitrate = totalParticipants >= 6 ? 96000 : 128000;
 
   pc.getSenders().forEach((sender) => {
     if (sender.track && sender.track.kind === 'video') {
@@ -1087,7 +1166,8 @@ function tunePeerSenders(pc) {
         params.encodings[0].maxFramerate = maxFramerate;
         params.encodings[0].scaleResolutionDownBy = scaleDown;
         params.encodings[0].networkPriority = 'high';
-        params.degradationPreference = AppState.isSharingScreen ? 'maintain-resolution' : 'maintain-framerate';
+        params.encodings[0].priority = 'high';
+        params.degradationPreference = degradationPref;
         sender.setParameters(params).catch(() => {});
       } catch (err) {}
     }
@@ -1098,12 +1178,25 @@ function tunePeerSenders(pc) {
         if (!params.encodings || params.encodings.length === 0) {
           params.encodings = [{}];
         }
-        params.encodings[0].maxBitrate = totalParticipants >= 6 ? 40000 : 64000;
+        params.encodings[0].maxBitrate = maxAudioBitrate;
         params.encodings[0].networkPriority = 'high';
+        params.encodings[0].priority = 'high';
         sender.setParameters(params).catch(() => {});
       } catch (err) {}
     }
   });
+
+  if (pc.getReceivers) {
+    pc.getReceivers().forEach((receiver) => {
+      if (receiver.track && receiver.track.kind === 'audio') {
+        try {
+          if ('playoutDelayHint' in receiver) {
+            receiver.playoutDelayHint = 0.05; // 50ms smooth low latency buffer
+          }
+        } catch (e) {}
+      }
+    });
+  }
 }
 
 function dynamicallyAdjustBitrates() {
@@ -1133,6 +1226,9 @@ function renderRemoteVideoTile(peerId, stream) {
     videoEl = document.createElement('video');
     videoEl.autoplay = true;
     videoEl.playsInline = true;
+    videoEl.setAttribute('playsinline', '');
+    videoEl.setAttribute('webkit-playsinline', '');
+    videoEl.volume = 1.0;
 
     // Remote avatar placeholder
     const profile = AppState.peerProfiles.get(peerId) || { name: 'Friend' };
@@ -1176,6 +1272,7 @@ function renderRemoteVideoTile(peerId, stream) {
 
   if (videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
+    videoEl.volume = 1.0;
     videoEl.play().catch(e => console.log('Autoplay hint:', e));
   }
 
@@ -1549,17 +1646,28 @@ async function flipCamera(event) {
       newStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: targetFacing },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30, max: 60 }
         },
         audio: false
       });
     } catch (e1) {
-      // Fallback without resolution constraints
-      newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: targetFacing },
-        audio: false
-      });
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: targetFacing },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch (e2) {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: targetFacing },
+          audio: false
+        });
+      }
     }
 
     const newVideoTrack = newStream.getVideoTracks()[0];
@@ -1626,19 +1734,40 @@ async function toggleScreenShare() {
     let displayStream = null;
     try {
       displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
+        video: {
+          cursor: 'always',
+          width: { ideal: 1920, max: 2560 },
+          height: { ideal: 1080, max: 1440 },
+          frameRate: { ideal: 30, max: 60 }
+        },
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 2,
+          sampleRate: 48000
+        }
       });
     } catch (audioErr) {
       try {
         displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true
+          video: {
+            cursor: 'always',
+            width: { ideal: 1920, max: 2560 },
+            height: { ideal: 1080, max: 1440 }
+          }
         });
       } catch (videoErr) {
-        if (videoErr.name !== 'AbortError' && videoErr.name !== 'NotAllowedError') {
-          showAlert('Screen share failed: ' + (videoErr.message || videoErr.name), true);
+        try {
+          displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true
+          });
+        } catch (basicErr) {
+          if (basicErr.name !== 'AbortError' && basicErr.name !== 'NotAllowedError') {
+            showAlert('Screen share failed: ' + (basicErr.message || basicErr.name), true);
+          }
+          return;
         }
-        return;
       }
     }
 
