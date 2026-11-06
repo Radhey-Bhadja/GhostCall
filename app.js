@@ -176,8 +176,8 @@ window.addEventListener('hashchange', async () => {
 
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
-    const extractedId = hash.replace('room-', '').trim();
-    if (extractedId && extractedId !== AppState.currentRoomId) {
+    const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
+    if (extractedId.length === 6 && extractedId !== AppState.currentRoomId) {
       const exists = await checkRoomExists(extractedId);
       if (exists) {
         startVideoCallRoom(extractedId, true);
@@ -225,13 +225,59 @@ function initUserPreferences() {
   }
 
   if (UI.roomInput) {
+    // Only allow numeric digits 0-9 and control keys
     UI.roomInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         joinExistingRoom();
+        return;
+      }
+
+      // Allow navigation and edit control keys
+      const controlKeys = [
+        'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowLeft', 'ArrowRight', 
+        'ArrowUp', 'ArrowDown', 'Home', 'End'
+      ];
+      if (controlKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+        return;
+      }
+
+      // Block any non-digit character (alphabets, symbols, spaces)
+      if (!/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        return;
+      }
+
+      // Enforce max 6 digits strictly if no text is selected for replacement
+      const hasSelection = UI.roomInput.selectionStart !== UI.roomInput.selectionEnd;
+      if (UI.roomInput.value.length >= 6 && !hasSelection) {
+        e.preventDefault();
       }
     });
 
+    // Enforce 6-digit numeric filter on input (covers autocomplete/voice/drag)
     UI.roomInput.addEventListener('input', () => {
+      const sanitized = UI.roomInput.value.replace(/\D/g, '').slice(0, 6);
+      if (UI.roomInput.value !== sanitized) {
+        UI.roomInput.value = sanitized;
+      }
+      clearRoomInputError();
+    });
+
+    // Clean paste event: strip alphabets & special chars, keep at most 6 digits
+    UI.roomInput.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      const digits = text.replace(/\D/g, '').slice(0, 6);
+      UI.roomInput.value = digits;
+      clearRoomInputError();
+    });
+
+    // Clean drop event
+    UI.roomInput.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const text = e.dataTransfer?.getData('text') || '';
+      const digits = text.replace(/\D/g, '').slice(0, 6);
+      UI.roomInput.value = digits;
       clearRoomInputError();
     });
   }
@@ -267,8 +313,8 @@ function updateLocalDisplayName(name) {
 async function checkUrlHashOnLoad() {
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
-    const extractedId = hash.replace('room-', '').trim();
-    if (extractedId.length >= 3) {
+    const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
+    if (extractedId.length === 6) {
       showHeroView();
       if (UI.roomInput) UI.roomInput.value = extractedId;
       showToast('Checking room availability...');
@@ -342,8 +388,8 @@ function createNewRoom() {
 async function joinExistingRoom() {
   let val = UI.roomInput ? UI.roomInput.value.trim() : '';
   if (!val) {
-    showRoomInputError('Please enter a room code or link');
-    showRoomNotFoundModal('Please enter a room code or invite link to join a call.');
+    showRoomInputError('Please enter a 6-digit room code');
+    showRoomNotFoundModal('Please enter a 6-digit room code to join a call.');
     if (UI.roomInput) UI.roomInput.focus();
     return;
   }
@@ -355,17 +401,20 @@ async function joinExistingRoom() {
     val = val.split('#')[1];
   }
 
-  // Strip query params or spaces
-  if (val.includes('?')) val = val.split('?')[0];
-  val = val.replace(/[^a-zA-Z0-9_-]/g, '');
+  // Strip anything that is not a numeric digit and limit to exactly 6 digits
+  val = val.replace(/\D/g, '').slice(0, 6);
 
-  if (val.length < 3) {
-    showRoomInputError("Room doesn't exist or your code is wrong");
-    showRoomNotFoundModal("This room doesn't exist or your code is wrong. Please enter a valid room code.");
-    if (UI.roomInput) UI.roomInput.focus();
+  if (val.length !== 6) {
+    showRoomInputError('Room code must be exactly 6 digits');
+    showRoomNotFoundModal('Room code must be exactly 6 digits (numbers only). Please check your code and try again.');
+    if (UI.roomInput) {
+      UI.roomInput.value = val;
+      UI.roomInput.focus();
+    }
     return;
   }
 
+  if (UI.roomInput) UI.roomInput.value = val;
   clearRoomInputError();
 
   // Show loading state on Join button

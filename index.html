@@ -145,8 +145,10 @@
             <input 
               type="text" 
               id="input-room-code" 
-              placeholder="Enter room code or link..." 
-              maxlength="45" 
+              placeholder="Enter 6-digit code..." 
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="6" 
               autocomplete="off"
               spellcheck="false"
             />
