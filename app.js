@@ -1078,25 +1078,21 @@ function renderRemoteVideoTile(peerId, stream) {
       <span class="avatar-name">${profile.name}</span>
     `;
 
-    // User Tag Pill
-    const tag = document.createElement('div');
-    tag.className = 'user-tag';
-    tag.id = `tag-${peerId}`;
-    tag.innerHTML = `
-      <span class="mic-badge" id="mic-badge-${peerId}" title="Microphone">
-        <svg class="mic-icon-on" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
-        </svg>
-        <svg class="mic-icon-off" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
-          <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
-        </svg>
-      </span>
-      <span class="tag-name-text">${profile.name}</span>
-    `;
+    // Member status dot on top of screen
+    const dot = document.createElement('div');
+    dot.className = 'member-status-dot';
+    dot.id = `mic-badge-${peerId}`;
+    dot.title = `${profile.name}`;
+
+    const hiddenName = document.createElement('span');
+    hiddenName.className = 'tag-name-text';
+    hiddenName.style.display = 'none';
+    hiddenName.textContent = profile.name;
 
     card.appendChild(videoEl);
     card.appendChild(avatar);
-    card.appendChild(tag);
+    card.appendChild(dot);
+    card.appendChild(hiddenName);
     UI.videoGrid.appendChild(card);
 
     if (AppState.joinedPeersNotified && !AppState.joinedPeersNotified.has(peerId)) {
@@ -1156,17 +1152,14 @@ function updateRemoteTileProfile(peerId) {
   }
 
   const micBadge = card.querySelector(`#mic-badge-${peerId}`);
-  if (micBadge && profile.audioEnabled !== undefined) {
-    const iconOn = micBadge.querySelector('.mic-icon-on');
-    const iconOff = micBadge.querySelector('.mic-icon-off');
-    if (profile.audioEnabled) {
-      micBadge.classList.remove('muted');
-      if (iconOn) iconOn.style.display = 'block';
-      if (iconOff) iconOff.style.display = 'none';
-    } else {
-      micBadge.classList.add('muted');
-      if (iconOn) iconOn.style.display = 'none';
-      if (iconOff) iconOff.style.display = 'block';
+  if (micBadge) {
+    micBadge.title = profile.name;
+    if (profile.audioEnabled !== undefined) {
+      if (profile.audioEnabled) {
+        micBadge.classList.remove('muted');
+      } else {
+        micBadge.classList.add('muted');
+      }
     }
   }
 }

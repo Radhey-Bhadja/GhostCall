@@ -981,62 +981,44 @@ body.in-call-mode .call-top-bar {
   box-shadow: 0 0 0 3px var(--emerald-500), 0 0 25px var(--emerald-glow);
 }
 
-.user-tag {
+/* Member Status Dot on top of screen for each member */
+.member-status-dot {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  pointer-events: none;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  z-index: 15;
-  max-width: calc(100% - 32px);
-  box-sizing: border-box;
-}
-
-.user-tag .tag-name-text {
-  max-width: 140px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-  line-height: 1.2;
-}
-
-.mic-badge {
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  top: 14px;
+  left: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
+  background: var(--emerald-500);
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.75), 0 0 8px rgba(16, 185, 129, 0.8);
+  z-index: 20;
   transition: all 0.2s ease;
+  pointer-events: auto;
 }
 
-.mic-badge svg {
-  width: 14px;
-  height: 14px;
-  fill: var(--emerald-400);
-  flex-shrink: 0;
+.member-status-dot.muted {
+  background: var(--danger-500);
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.75), 0 0 8px rgba(239, 68, 68, 0.8);
 }
 
-.mic-badge.muted {
-  background: rgba(239, 68, 68, 0.22);
+/* Local PiP box dot position */
+.local-pip-box .member-status-dot {
+  top: 10px;
+  left: 10px;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.8), 0 0 6px rgba(16, 185, 129, 0.8);
 }
 
-.mic-badge.muted svg {
-  fill: var(--danger-500);
+.local-pip-box .member-status-dot.muted {
+  box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.8), 0 0 6px rgba(239, 68, 68, 0.8);
+}
+
+/* Speaking pulse */
+.video-card.is-speaking .member-status-dot,
+.local-pip-box.is-speaking .member-status-dot {
+  box-shadow: 0 0 0 2.5px rgba(16, 185, 129, 0.6), 0 0 12px var(--emerald-glow);
+  transform: scale(1.25);
 }
 
 /* User Avatar Placeholder (When camera is off) */
@@ -1139,45 +1121,7 @@ body.in-call-mode .call-top-bar {
   font-size: 0.8rem;
 }
 
-.self-label {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  font-size: 0.76rem;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  z-index: 12;
-  max-width: calc(100% - 16px);
-  box-sizing: border-box;
-}
 
-.self-label #local-tag-name {
-  max-width: 80px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-}
-
-.mic-status-mini {
-  width: 6px;
-  height: 6px;
-  background: var(--emerald-500);
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.mic-status-mini.muted {
-  background: var(--danger-500);
-}
 
 .btn-pip-flip {
   position: absolute;
@@ -2337,37 +2281,19 @@ body.in-call-mode .call-top-bar {
     height: 198px;
   }
 
-  .local-pip-box .self-label {
-    padding: 2px 7px;
-    font-size: 0.68rem;
-    bottom: 6px;
-    left: 6px;
-    max-width: calc(100% - 12px);
-    box-sizing: border-box;
+  /* Member status dot mobile sizing */
+  .member-status-dot {
+    top: 10px;
+    left: 10px;
+    width: 8px;
+    height: 8px;
   }
 
-  .local-pip-box .self-label #local-tag-name {
-    max-width: 50px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
-  }
-
-  /* Remote User Tag Position on Mobile (Top Left to avoid bottom controls dock overlap) */
-  .user-tag {
-    top: 12px;
-    bottom: auto;
-    left: 12px;
-    padding: 5px 10px;
-    font-size: 0.78rem;
-    gap: 6px;
-    max-width: calc(100% - 110px);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-  }
-
-  .user-tag .tag-name-text {
-    max-width: 95px;
+  .local-pip-box .member-status-dot {
+    top: 8px;
+    left: 8px;
+    width: 7px;
+    height: 7px;
   }
 
   .local-pip-box .btn-pip-flip {
@@ -2539,21 +2465,11 @@ body.in-call-mode .call-top-bar {
     top: 6px;
   }
 
-  .user-tag {
+  .member-status-dot {
     top: 8px;
     left: 8px;
-    padding: 4px 8px;
-    font-size: 0.74rem;
-    gap: 5px;
-    max-width: calc(100% - 94px);
-  }
-
-  .user-tag .tag-name-text {
-    max-width: 70px;
-  }
-
-  .local-pip-box .self-label #local-tag-name {
-    max-width: 42px;
+    width: 7px;
+    height: 7px;
   }
 
   .code-entry-row input {
