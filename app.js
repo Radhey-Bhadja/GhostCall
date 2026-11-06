@@ -529,18 +529,18 @@ async function startVideoCallRoom(roomId, isGuest = false) {
 }
 
 async function initLocalMediaStream() {
+  // Mobile-safe, universally supported progressive constraints (no restrictive min dimensions)
   const primaryConstraints = {
     video: {
-      width: { ideal: 1920, min: 1280 },
-      height: { ideal: 1080, min: 720 },
-      frameRate: { ideal: 30, min: 24 },
-      facingMode: AppState.facingMode
+      facingMode: AppState.facingMode || 'user',
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      frameRate: { ideal: 30, max: 30 }
     },
     audio: {
       echoCancellation: { ideal: true },
       noiseSuppression: { ideal: true },
-      autoGainControl: { ideal: true },
-      sampleRate: { ideal: 48000 }
+      autoGainControl: { ideal: true }
     }
   };
 
@@ -551,23 +551,36 @@ async function initLocalMediaStream() {
   } catch (err) {
     console.warn('Primary media constraints failed, trying basic fallback:', err);
     try {
+      // Basic fallback without resolution constraints
       const fallbackStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: AppState.facingMode },
+        video: { facingMode: AppState.facingMode || 'user' },
         audio: true
       });
       attachLocalStream(fallbackStream);
       dismissAlert();
     } catch (fallbackErr) {
-      console.warn('Fallback media failed:', fallbackErr);
-      const dummyStream = createFallbackMediaStream();
-      attachLocalStream(dummyStream);
+      console.warn('Fallback media failed, trying audio or video only:', fallbackErr);
+      try {
+        const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true });
+        attachLocalStream(videoOnly);
+        dismissAlert();
+      } catch (videoErr) {
+        try {
+          const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true });
+          attachLocalStream(audioOnly);
+          dismissAlert();
+        } catch (audioErr) {
+          const dummyStream = createFallbackMediaStream();
+          attachLocalStream(dummyStream);
 
-      if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
-        showAlert('Camera & Microphone access was blocked. Tap the lock icon in your address bar to allow.', true);
-      } else if (fallbackErr.name === 'NotFoundError' || fallbackErr.name === 'DevicesNotFoundError') {
-        showAlert('No camera or microphone found. You can still watch & listen.', true);
-      } else {
-        showAlert('Media device error: ' + (fallbackErr.message || 'Unknown error'), true);
+          if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
+            showAlert('Camera & Microphone access was blocked. Tap the lock icon in your address bar to allow.', true);
+          } else if (fallbackErr.name === 'NotFoundError' || fallbackErr.name === 'DevicesNotFoundError') {
+            showAlert('No camera or microphone found. You can still watch & listen.', true);
+          } else {
+            showAlert('Media device error: ' + (fallbackErr.message || 'Unknown error'), true);
+          }
+        }
       }
     }
   }
@@ -575,7 +588,14 @@ async function initLocalMediaStream() {
 
 function attachLocalStream(stream) {
   AppState.localStream = stream;
-  UI.localVideo.srcObject = stream;
+  if (UI.localVideo) {
+    UI.localVideo.muted = true;
+    UI.localVideo.playsInline = true;
+    UI.localVideo.setAttribute('playsinline', '');
+    UI.localVideo.setAttribute('webkit-playsinline', '');
+    UI.localVideo.srcObject = stream;
+    UI.localVideo.play().catch(e => console.warn('Local video play note:', e));
+  }
   setupAudioAnalyser('local', stream);
 }
 
@@ -1326,13 +1346,47 @@ function toggleMicrophone() {
   broadcastProfileUpdate();
 }
 
-function toggleCamera() {
-  if (!AppState.localStream) return;
-  const videoTracks = AppState.localStream.getVideoTracks();
+let isTogglingCamera = false;
+async function toggleCamera() {
+  if (isTogglingCamera) return;
+  isTogglingCamera = true;
+  setTimeout(() => { isTogglingCamera = false; }, 350);
 
-  if (videoTracks.length === 0) {
-    showAlert('No camera track available.', true);
+  if (!AppState.localStream) {
+    await initLocalMediaStream();
     return;
+  }
+
+  let videoTracks = AppState.localStream.getVideoTracks();
+
+  // If no track or track ended, re-acquire camera
+  if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: AppState.facingMode || 'user' },
+        audio: false
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+      if (newTrack) {
+        AppState.localStream.addTrack(newTrack);
+        if (UI.localVideo) {
+          UI.localVideo.muted = true;
+          UI.localVideo.playsInline = true;
+          UI.localVideo.srcObject = AppState.localStream;
+          UI.localVideo.play().catch(() => {});
+        }
+        // Update senders
+        AppState.peerCalls.forEach((call) => {
+          try {
+            const sender = call.peerConnection?.getSenders()?.find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(newTrack);
+          } catch (e) {}
+        });
+        videoTracks = [newTrack];
+      }
+    } catch (e) {
+      console.warn('Could not re-acquire video track:', e);
+    }
   }
 
   AppState.isCameraMuted = !AppState.isCameraMuted;
@@ -1341,17 +1395,20 @@ function toggleCamera() {
   });
 
   if (!AppState.isCameraMuted) {
-    UI.btnCam.className = 'ctrl-btn active-state';
-    UI.iconCamOn.style.display = 'block';
-    UI.iconCamOff.style.display = 'none';
-    UI.labelCam.textContent = 'Camera';
+    if (UI.btnCam) UI.btnCam.className = 'ctrl-btn active-state';
+    if (UI.iconCamOn) UI.iconCamOn.style.display = 'block';
+    if (UI.iconCamOff) UI.iconCamOff.style.display = 'none';
+    if (UI.labelCam) UI.labelCam.textContent = 'Camera';
     if (UI.localAvatar) UI.localAvatar.style.display = 'none';
+    if (UI.localVideo) {
+      UI.localVideo.play().catch(() => {});
+    }
     showToast('Camera turned on');
   } else {
-    UI.btnCam.className = 'ctrl-btn inactive-state';
-    UI.iconCamOn.style.display = 'none';
-    UI.iconCamOff.style.display = 'block';
-    UI.labelCam.textContent = 'Off';
+    if (UI.btnCam) UI.btnCam.className = 'ctrl-btn inactive-state';
+    if (UI.iconCamOn) UI.iconCamOn.style.display = 'none';
+    if (UI.iconCamOff) UI.iconCamOff.style.display = 'block';
+    if (UI.labelCam) UI.labelCam.textContent = 'Off';
     if (UI.localAvatar) UI.localAvatar.style.display = 'flex';
     showToast('Camera turned off');
   }
@@ -1359,39 +1416,69 @@ function toggleCamera() {
   broadcastProfileUpdate();
 }
 
+let isFlippingCamera = false;
 async function flipCamera(event) {
-  if (event) event.stopPropagation();
+  if (event) {
+    try { event.stopPropagation(); } catch (e) {}
+    try { event.preventDefault(); } catch (e) {}
+  }
+  if (isFlippingCamera) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
 
-  AppState.facingMode = AppState.facingMode === 'user' ? 'environment' : 'user';
+  isFlippingCamera = true;
+  const targetFacing = AppState.facingMode === 'user' ? 'environment' : 'user';
   showToast(`Switching camera...`);
 
   try {
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: AppState.facingMode,
-        width: { ideal: 1920, min: 1280 },
-        height: { ideal: 1080, min: 720 }
-      },
-      audio: false
-    });
-
-    const newVideoTrack = newStream.getVideoTracks()[0];
-    const oldVideoTrack = AppState.localStream.getVideoTracks()[0];
-
-    if (oldVideoTrack) {
-      AppState.localStream.removeTrack(oldVideoTrack);
-      oldVideoTrack.stop();
+    let newStream;
+    try {
+      newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: targetFacing },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+    } catch (e1) {
+      // Fallback without resolution constraints
+      newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: targetFacing },
+        audio: false
+      });
     }
 
-    AppState.localStream.addTrack(newVideoTrack);
-    UI.localVideo.srcObject = AppState.localStream;
+    const newVideoTrack = newStream.getVideoTracks()[0];
+    if (!newVideoTrack) throw new Error('No video track returned');
 
-    // Invert mirror effect if environment camera is used
-    if (AppState.facingMode === 'environment') {
-      UI.localVideo.classList.add('no-mirror');
-    } else {
-      UI.localVideo.classList.remove('no-mirror');
+    // Respect camera muted state
+    newVideoTrack.enabled = !AppState.isCameraMuted;
+
+    // Safely replace on local stream
+    if (AppState.localStream) {
+      const oldTracks = AppState.localStream.getVideoTracks();
+      oldTracks.forEach(t => {
+        try {
+          AppState.localStream.removeTrack(t);
+          t.stop();
+        } catch (e) {}
+      });
+      AppState.localStream.addTrack(newVideoTrack);
+    }
+
+    AppState.facingMode = targetFacing;
+
+    if (UI.localVideo) {
+      UI.localVideo.muted = true;
+      UI.localVideo.playsInline = true;
+      UI.localVideo.srcObject = AppState.localStream;
+      UI.localVideo.play().catch(() => {});
+
+      if (AppState.facingMode === 'environment') {
+        UI.localVideo.classList.add('no-mirror');
+      } else {
+        UI.localVideo.classList.remove('no-mirror');
+      }
     }
 
     // Replace video track on all peer connections
@@ -1404,10 +1491,14 @@ async function flipCamera(event) {
       } catch (e) {}
     });
 
-    showToast(`Camera switched`);
+    showToast(`Switched to ${targetFacing === 'environment' ? 'rear' : 'front'} camera`);
   } catch (err) {
     console.warn('Camera flip error:', err);
-    showAlert('Could not flip camera: ' + (err.message || 'Unavailable'), false);
+    showToast('Could not switch camera: ' + (err.name || 'Device error'));
+  } finally {
+    setTimeout(() => {
+      isFlippingCamera = false;
+    }, 500);
   }
 }
 
@@ -2062,11 +2153,12 @@ function initDragPip() {
 }
 
 function handlePipClick() {
-  const remoteCards = UI.videoGrid ? UI.videoGrid.querySelectorAll('.video-card') : [];
-  if (remoteCards.length === 1) {
-    toggleSwapLocalAndRemoteVideo(remoteCards[0]);
-  } else if (UI.localVideoBox) {
+  if (UI.localVideoBox) {
     UI.localVideoBox.classList.toggle('is-expanded');
+    // Ensure video playback stays alive on tap
+    if (UI.localVideo && UI.localVideo.paused) {
+      UI.localVideo.play().catch(() => {});
+    }
   }
 }
 
