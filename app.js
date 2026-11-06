@@ -340,10 +340,11 @@ function createNewRoom() {
 }
 
 async function joinExistingRoom() {
-  let val = UI.roomInput.value.trim();
+  let val = UI.roomInput ? UI.roomInput.value.trim() : '';
   if (!val) {
-    showRoomInputError('Please enter a 6-digit room code');
-    UI.roomInput.focus();
+    showRoomInputError('Please enter a room code or link');
+    showRoomNotFoundModal('Please enter a room code or invite link to join a call.');
+    if (UI.roomInput) UI.roomInput.focus();
     return;
   }
 
@@ -360,7 +361,8 @@ async function joinExistingRoom() {
 
   if (val.length < 3) {
     showRoomInputError("Room doesn't exist or your code is wrong");
-    showRoomNotFoundModal("Room doesn't exist or your code is wrong. Please enter a valid room code.");
+    showRoomNotFoundModal("This room doesn't exist or your code is wrong. Please enter a valid room code.");
+    if (UI.roomInput) UI.roomInput.focus();
     return;
   }
 
@@ -370,7 +372,7 @@ async function joinExistingRoom() {
   const originalHtml = UI.btnJoinRoom ? UI.btnJoinRoom.innerHTML : '<span>Join</span>';
   if (UI.btnJoinRoom) {
     UI.btnJoinRoom.disabled = true;
-    UI.btnJoinRoom.innerHTML = '<span class="btn-spinner"></span><span>Checking...</span>';
+    UI.btnJoinRoom.innerHTML = '<span class="btn-spinner"></span><span>Verifying...</span>';
   }
 
   try {
@@ -402,74 +404,66 @@ async function joinExistingRoom() {
 
 function checkRoomExists(roomId) {
   return new Promise((resolve) => {
-    const hostPeerId = `ghostcall-${roomId}-host`;
-    let settled = false;
-    let probe = null;
-
-    const cleanup = () => {
-      if (probe) {
-        try { probe.destroy(); } catch (e) {}
-        probe = null;
-      }
-    };
-
-    const timeout = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        cleanup();
-        resolve(false);
-      }
-    }, 3800);
-
-    try {
-      probe = new Peer(rtcConfiguration);
-    } catch (e) {
-      clearTimeout(timeout);
+    if (!roomId || typeof roomId !== 'string' || roomId.trim().length < 3) {
       resolve(false);
       return;
     }
+    const cleanId = roomId.trim();
+    const hostPeerId = `ghostcall-${cleanId}-host`;
+    const token = Math.random().toString(36).substring(2);
+    let resolved = false;
+    let ws = null;
 
-    probe.on('open', () => {
-      if (settled) return;
-      try {
-        const conn = probe.connect(hostPeerId, { reliable: false });
-
-        conn.on('open', () => {
-          if (!settled) {
-            settled = true;
-            clearTimeout(timeout);
-            try { conn.close(); } catch (e) {}
-            cleanup();
-            resolve(true); // Host is online and answered connection!
-          }
-        });
-
-        conn.on('error', () => {
-          if (!settled) {
-            settled = true;
-            clearTimeout(timeout);
-            cleanup();
-            resolve(false);
-          }
-        });
-      } catch (e) {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timeout);
-          cleanup();
-          resolve(false);
-        }
-      }
-    });
-
-    probe.on('error', (err) => {
-      if (!settled) {
-        settled = true;
-        clearTimeout(timeout);
-        cleanup();
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try { if (ws) ws.close(); } catch (e) {}
         resolve(false);
       }
-    });
+    }, 2800);
+
+    try {
+      ws = new WebSocket(`wss://0.peerjs.com/peerjs?key=peerjs&id=${encodeURIComponent(hostPeerId)}&token=${token}`);
+      ws.onmessage = (event) => {
+        if (resolved) return;
+        try {
+          const msg = JSON.parse(event.data);
+          resolved = true;
+          clearTimeout(timer);
+          try { ws.close(); } catch (e) {}
+          if (msg.type === 'ID-TAKEN') {
+            resolve(true); // Host is actively registered in this room!
+          } else {
+            resolve(false); // Host is free/unregistered = room does not exist
+          }
+        } catch (e) {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            resolve(false);
+          }
+        }
+      };
+
+      ws.onerror = () => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(false);
+        }
+      };
+
+      ws.onclose = () => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(false);
+        }
+      };
+    } catch (e) {
+      clearTimeout(timer);
+      resolve(false);
+    }
   });
 }
 
@@ -499,6 +493,12 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   AppState.suppressNavConfirm = true;
   AppState.isJoiningAsGuest = isGuest;
   AppState.isConnectingInitialHost = isGuest;
+
+  // Persist session state
+  try {
+    sessionStorage.setItem('ghostcall_active_room', roomId);
+    sessionStorage.setItem('ghostcall_in_call', 'true');
+  } catch (e) {}
 
   window.location.hash = `room-${roomId}`;
   try {
@@ -1083,8 +1083,13 @@ function renderRemoteVideoTile(peerId, stream) {
     tag.className = 'user-tag';
     tag.id = `tag-${peerId}`;
     tag.innerHTML = `
-      <span class="mic-badge" id="mic-badge-${peerId}">
-        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/></svg>
+      <span class="mic-badge" id="mic-badge-${peerId}" title="Microphone">
+        <svg class="mic-icon-on" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
+        </svg>
+        <svg class="mic-icon-off" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+          <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
+        </svg>
       </span>
       <span class="tag-name-text">${profile.name}</span>
     `;
@@ -1152,10 +1157,16 @@ function updateRemoteTileProfile(peerId) {
 
   const micBadge = card.querySelector(`#mic-badge-${peerId}`);
   if (micBadge && profile.audioEnabled !== undefined) {
+    const iconOn = micBadge.querySelector('.mic-icon-on');
+    const iconOff = micBadge.querySelector('.mic-icon-off');
     if (profile.audioEnabled) {
       micBadge.classList.remove('muted');
+      if (iconOn) iconOn.style.display = 'block';
+      if (iconOff) iconOff.style.display = 'none';
     } else {
       micBadge.classList.add('muted');
+      if (iconOn) iconOn.style.display = 'none';
+      if (iconOff) iconOff.style.display = 'block';
     }
   }
 }
@@ -1937,6 +1948,16 @@ function executeLeaveCall() {
 function exitCallToHero(cleanHash = true) {
   AppState.isCallActive = false;
   AppState.currentRoomId = null;
+
+  // Clear session storage
+  try {
+    sessionStorage.removeItem('ghostcall_active_room');
+    sessionStorage.removeItem('ghostcall_in_call');
+  } catch (e) {}
+
+  // Stop Timer
+  stopCallTimer();
+
   // 1. Stop local tracks
   if (AppState.localStream) {
     AppState.localStream.getTracks().forEach(t => t.stop());
@@ -1945,6 +1966,9 @@ function exitCallToHero(cleanHash = true) {
   if (AppState.displayStream) {
     AppState.displayStream.getTracks().forEach(t => t.stop());
     AppState.displayStream = null;
+  }
+  if (UI.localVideo) {
+    UI.localVideo.srcObject = null;
   }
 
   // 2. Close peer calls & data channels
@@ -1958,7 +1982,7 @@ function exitCallToHero(cleanHash = true) {
   if (AppState.joinedPeersNotified) AppState.joinedPeersNotified.clear();
 
   if (AppState.peer) {
-    AppState.peer.destroy();
+    try { AppState.peer.destroy(); } catch (e) {}
     AppState.peer = null;
   }
 
@@ -1977,10 +2001,17 @@ function exitCallToHero(cleanHash = true) {
     UI.localVideoBox.classList.remove('is-expanded', 'is-dragging');
   }
 
+  // Close modals
+  closeLeaveModal();
+  closeShareModal();
+  closeRoomNotFoundModal();
+
   // 4. Reset Views & URL
   AppState.currentRoomId = null;
   if (cleanHash) {
-    history.pushState("", document.title, window.location.pathname + window.location.search);
+    try {
+      history.pushState("", document.title, window.location.pathname + window.location.search);
+    } catch (e) {}
   }
 
   showHeroView();

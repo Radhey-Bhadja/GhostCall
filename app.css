@@ -91,6 +91,11 @@ button, input, select, textarea {
   color: inherit;
 }
 
+h1, h2, h3, h4, h5, h6, p, label {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 /* ==========================================================================
    1. GLOBAL APP HEADER
    ========================================================================== */
@@ -978,36 +983,56 @@ body.in-call-mode .call-top-bar {
 
 .user-tag {
   position: absolute;
-  bottom: 14px;
-  left: 14px;
-  background: rgba(15, 23, 42, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 6px 14px;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 6px 12px;
   border-radius: var(--radius-full);
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: #ffffff;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   pointer-events: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   z-index: 15;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+}
+
+.user-tag .tag-name-text {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  line-height: 1.2;
 }
 
 .mic-badge {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .mic-badge svg {
   width: 14px;
   height: 14px;
-  fill: var(--emerald-500);
+  fill: var(--emerald-400);
+  flex-shrink: 0;
+}
+
+.mic-badge.muted {
+  background: rgba(239, 68, 68, 0.22);
 }
 
 .mic-badge.muted svg {
@@ -1130,6 +1155,16 @@ body.in-call-mode .call-top-bar {
   align-items: center;
   gap: 6px;
   z-index: 12;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+}
+
+.self-label #local-tag-name {
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
 }
 
 .mic-status-mini {
@@ -2307,6 +2342,32 @@ body.in-call-mode .call-top-bar {
     font-size: 0.68rem;
     bottom: 6px;
     left: 6px;
+    max-width: calc(100% - 12px);
+    box-sizing: border-box;
+  }
+
+  .local-pip-box .self-label #local-tag-name {
+    max-width: 50px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+  }
+
+  /* Remote User Tag Position on Mobile (Top Left to avoid bottom controls dock overlap) */
+  .user-tag {
+    top: 12px;
+    bottom: auto;
+    left: 12px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    gap: 6px;
+    max-width: calc(100% - 110px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  }
+
+  .user-tag .tag-name-text {
+    max-width: 95px;
   }
 
   .local-pip-box .btn-pip-flip {
@@ -2476,6 +2537,23 @@ body.in-call-mode .call-top-bar {
     height: 114px;
     right: 6px;
     top: 6px;
+  }
+
+  .user-tag {
+    top: 8px;
+    left: 8px;
+    padding: 4px 8px;
+    font-size: 0.74rem;
+    gap: 5px;
+    max-width: calc(100% - 94px);
+  }
+
+  .user-tag .tag-name-text {
+    max-width: 70px;
+  }
+
+  .local-pip-box .self-label #local-tag-name {
+    max-width: 42px;
   }
 
   .code-entry-row input {
