@@ -4,16 +4,32 @@
    Zero Database • Zero Logins • End-to-End Browser Media Channels
    ========================================================================== */
 
-// 1. Multi-provider STUN configuration for reliable NAT & firewall traversal
+// 1. Multi-provider STUN & TURN configuration for 100% reliable NAT & carrier firewall traversal
 const rtcConfiguration = {
   config: {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      { urls: 'stun:global.stun.twilio.com:3478' }
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:stun.services.mozilla.com' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+      // OpenRelay public WebRTC TURN servers for cellular/symmetric NAT traversal
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelay',
+        credential: 'openrelay'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelay',
+        credential: 'openrelay'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelay',
+        credential: 'openrelay'
+      }
     ],
     iceCandidatePoolSize: 10
   }
@@ -322,6 +338,13 @@ async function checkUrlHashOnLoad() {
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6) {
+      // If user was already active in this room before reload, re-enter seamlessly
+      const wasInThisRoom = sessionStorage.getItem('ghostcall_active_room') === extractedId && sessionStorage.getItem('ghostcall_in_call') === 'true';
+      if (wasInThisRoom) {
+        startVideoCallRoom(extractedId, false);
+        return;
+      }
+
       showHeroView();
       if (UI.roomInput) UI.roomInput.value = extractedId;
       showToast('Checking room availability...');
@@ -476,7 +499,7 @@ function checkRoomExists(roomId) {
         try { if (ws) ws.close(); } catch (e) {}
         resolve(false);
       }
-    }, 2800);
+    }, 3800);
 
     try {
       ws = new WebSocket(`wss://0.peerjs.com/peerjs?key=peerjs&id=${encodeURIComponent(hostPeerId)}&token=${token}`);
@@ -859,6 +882,10 @@ function setupDataConnection(conn) {
     handleMeshSignaling(data, conn.peer);
   });
 
+  conn.on('error', (err) => {
+    console.warn('Peer data channel note:', conn.peer, err);
+  });
+
   conn.on('close', () => {
     handlePeerDisconnect(conn.peer);
   });
@@ -882,6 +909,10 @@ function connectDataChannelToHost(hostId) {
 
   conn.on('data', (data) => {
     handleMeshSignaling(data, hostId);
+  });
+
+  conn.on('error', (err) => {
+    console.warn('Host data channel note:', hostId, err);
   });
 
   conn.on('close', () => {
@@ -985,6 +1016,9 @@ function handleMeshSignaling(data, fromPeerId) {
 
     case 'CHAT_MESSAGE':
       appendChatMessage(data.senderName, data.text, false, data.time);
+      if (AppState.isRoomHost) {
+        broadcastMeshMessage(data, fromPeerId);
+      }
       break;
 
   }
