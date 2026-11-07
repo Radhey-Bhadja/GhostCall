@@ -73,7 +73,9 @@ const AppState = {
   currentSidebarTab: 'chat',              // 'chat' or 'people'
   isCallActive: false,
   suppressNavConfirm: false,
-  joinedPeersNotified: new Set()
+  joinedPeersNotified: new Set(),
+  isSwappedVideo: false,
+  swappedPeerId: null
 };
 
 // 3. Cached DOM References
@@ -990,6 +992,9 @@ function renderRemoteVideoTile(peerId, stream) {
     avatarEl = card.querySelector('.avatar-placeholder');
   }
 
+  // Preserve reference to the remote stream
+  card._originalStream = stream;
+
   // Safe playback handling
   if (videoEl && videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
@@ -1044,6 +1049,10 @@ function updateRemoteTileProfile(peerId) {
 }
 
 function removeRemoteVideoTile(peerId) {
+  if (AppState.isSwappedVideo && AppState.swappedPeerId === peerId) {
+    restoreVideoSwap();
+  }
+
   if (AppState.peerCalls.has(peerId)) {
     try { AppState.peerCalls.get(peerId).close(); } catch (e) {}
     AppState.peerCalls.delete(peerId);
@@ -1761,6 +1770,11 @@ function exitCallToHero(cleanHash = true) {
   stopCallTimer();
   stopAudioAnalysis();
 
+  // Reset PiP swap state
+  AppState.isSwappedVideo = false;
+  AppState.swappedPeerId = null;
+  if (UI.localVideoBox) UI.localVideoBox.classList.remove('is-swapped');
+
   // Stop local hardware media tracks
   if (AppState.localStream) {
     AppState.localStream.getTracks().forEach(t => t.stop());
@@ -1875,6 +1889,130 @@ function showToast(text) {
 }
 
 /* ==========================================================================
+   WhatsApp Picture-in-Picture View Swap & Corner Snapping
+   ========================================================================== */
+function toggleSwapLocalAndRemoteVideo() {
+  const remoteCards = Array.from(UI.videoGrid.querySelectorAll('.video-card'));
+
+  if (remoteCards.length === 0) {
+    // Alone in room: flip camera / switch front-back
+    flipCamera();
+    return;
+  }
+
+  const targetCard = (AppState.swappedPeerId ? document.getElementById(`card-${AppState.swappedPeerId}`) : null) || remoteCards[0];
+  if (!targetCard) return;
+
+  const remoteVideo = targetCard.querySelector('video');
+  if (!remoteVideo) return;
+
+  if (!AppState.isSwappedVideo) {
+    // Preserve original remote stream reference
+    targetCard._remoteStream = remoteVideo.srcObject || targetCard._originalStream;
+
+    // Local stream displayed on large main stage video card
+    remoteVideo.srcObject = AppState.localStream;
+    remoteVideo.classList.add('local-preview-swapped');
+
+    // Remote stream displayed on corner floating PiP box
+    if (UI.localVideo) {
+      UI.localVideo.srcObject = targetCard._remoteStream;
+      UI.localVideo.classList.add('no-mirror');
+    }
+
+    AppState.isSwappedVideo = true;
+    AppState.swappedPeerId = targetCard.id.replace('card-', '');
+    if (UI.localVideoBox) UI.localVideoBox.classList.add('is-swapped');
+    showToast('Swapped camera view');
+  } else {
+    // Restore remote stream back to stage video card
+    if (targetCard._remoteStream) {
+      remoteVideo.srcObject = targetCard._remoteStream;
+      remoteVideo.classList.remove('local-preview-swapped');
+    }
+
+    // Restore local stream back to floating corner PiP
+    if (UI.localVideo) {
+      UI.localVideo.srcObject = AppState.localStream;
+      if (AppState.facingMode === 'user') {
+        UI.localVideo.classList.remove('no-mirror');
+      }
+    }
+
+    AppState.isSwappedVideo = false;
+    AppState.swappedPeerId = null;
+    if (UI.localVideoBox) UI.localVideoBox.classList.remove('is-swapped');
+    showToast('Restored original view');
+  }
+}
+
+function restoreVideoSwap() {
+  if (!AppState.isSwappedVideo) return;
+  const card = AppState.swappedPeerId ? document.getElementById(`card-${AppState.swappedPeerId}`) : UI.videoGrid.querySelector('.video-card');
+  if (card && card._remoteStream) {
+    const video = card.querySelector('video');
+    if (video) {
+      video.srcObject = card._remoteStream;
+      video.classList.remove('local-preview-swapped');
+    }
+  }
+  if (UI.localVideo) {
+    UI.localVideo.srcObject = AppState.localStream;
+    if (AppState.facingMode === 'user') {
+      UI.localVideo.classList.remove('no-mirror');
+    }
+  }
+  AppState.isSwappedVideo = false;
+  AppState.swappedPeerId = null;
+  if (UI.localVideoBox) {
+    UI.localVideoBox.classList.remove('is-swapped');
+  }
+}
+
+function snapPipToNearestCorner(pip) {
+  if (!pip) return;
+  const stage = document.getElementById('call-stage') || document.body;
+  const stageRect = stage.getBoundingClientRect();
+  const pipRect = pip.getBoundingClientRect();
+
+  const pipCenterX = pipRect.left + pipRect.width / 2;
+  const pipCenterY = pipRect.top + pipRect.height / 2;
+
+  const stageCenterX = stageRect.left + stageRect.width / 2;
+  const stageCenterY = stageRect.top + stageRect.height / 2;
+
+  const isLeft = pipCenterX < stageCenterX;
+  const isTop = pipCenterY < stageCenterY;
+
+  const isMobile = window.innerWidth <= 768;
+  const sideMargin = isMobile ? '12px' : '18px';
+  const topMargin = '60px'; // clear beneath see-through frosted navbar
+  const bottomMargin = isMobile ? '78px' : '84px'; // clear above floating dock
+
+  pip.style.transition = 'all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+  if (isLeft) {
+    pip.style.left = sideMargin;
+    pip.style.right = 'auto';
+  } else {
+    pip.style.right = sideMargin;
+    pip.style.left = 'auto';
+  }
+
+  if (isTop) {
+    pip.style.top = topMargin;
+    pip.style.bottom = 'auto';
+  } else {
+    pip.style.bottom = bottomMargin;
+    pip.style.top = 'auto';
+  }
+
+  setTimeout(() => {
+    if (pip) pip.style.transition = '';
+  }, 320);
+}
+
+/* ==========================================================================
    Draggable Picture-in-Picture Local Self-View
    ========================================================================== */
 function initDragPip() {
@@ -1884,23 +2022,27 @@ function initDragPip() {
   let isPointerActive = false;
   let startX = 0, startY = 0;
   let pipStartLeft = 0, pipStartTop = 0;
+  let hasMoved = false;
 
   const onPointerDown = (e) => {
     if (e.target.closest('#btn-camera-flip')) return;
     isPointerActive = true;
+    hasMoved = false;
     startX = e.clientX;
     startY = e.clientY;
     const rect = pip.getBoundingClientRect();
     pipStartLeft = rect.left;
     pipStartTop = rect.top;
-    pip.setPointerCapture(e.pointerId);
+    try { pip.setPointerCapture(e.pointerId); } catch (err) {}
   };
 
   const onPointerMove = (e) => {
     if (!isPointerActive) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+    if (Math.hypot(dx, dy) > 5) {
+      hasMoved = true;
+      pip.style.transition = 'none';
       pip.style.left = `${pipStartLeft + dx}px`;
       pip.style.top = `${pipStartTop + dy}px`;
       pip.style.right = 'auto';
@@ -1912,6 +2054,14 @@ function initDragPip() {
     if (!isPointerActive) return;
     isPointerActive = false;
     try { pip.releasePointerCapture(e.pointerId); } catch (err) {}
+
+    if (!hasMoved) {
+      // Tap / Click without dragging -> WhatsApp View Swap
+      toggleSwapLocalAndRemoteVideo();
+    } else {
+      // Drag released -> Magnetically snap to closest corner
+      snapPipToNearestCorner(pip);
+    }
   };
 
   pip.addEventListener('pointerdown', onPointerDown);
@@ -1919,8 +2069,9 @@ function initDragPip() {
   pip.addEventListener('pointerup', onPointerUp);
   pip.addEventListener('pointercancel', onPointerUp);
 
-  // Double click / tap to expand or shrink PiP
-  pip.addEventListener('dblclick', () => {
+  // Double click / double tap shortcut to toggle enlarged view
+  pip.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
     pip.classList.toggle('is-expanded');
   });
 }

@@ -318,8 +318,8 @@
         </div>
       </div>
 
-      <!-- Floating Self-View (Picture-in-Picture) Box -->
-      <div id="local-video-box" class="local-pip-box" title="Drag to move, double-click to resize">
+      <!-- Floating Self-View (Picture-in-Picture) Box — WhatsApp Portrait Style -->
+      <div id="local-video-box" class="local-pip-box" title="Tap to swap view • Drag to move">
         <video id="local-video" autoplay playsinline muted></video>
         <div id="local-avatar" class="avatar-placeholder" style="display: none;">
           <div class="avatar-circle">
@@ -327,15 +327,23 @@
           </div>
           <span class="avatar-name" id="local-avatar-name">You</span>
         </div>
+        <!-- WhatsApp Tap-to-Swap Hover Overlay -->
+        <div class="pip-swap-overlay" id="pip-swap-overlay" title="Tap to swap video view">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
+          </svg>
+        </div>
         <div class="tile-mic-slash" id="local-mic-slash" style="display: none;" title="Mic is muted">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
           </svg>
         </div>
         <div class="member-status-dot" id="local-mic-mini" title="Microphone Active"></div>
         <div class="tile-name-tag" id="local-tag-name">You</div>
         <button class="btn-pip-flip" id="btn-camera-flip" onclick="flipCamera(event)" title="Flip Camera" style="display: none;">
-          🔄
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+          </svg>
         </button>
       </div>
 
