@@ -1847,7 +1847,8 @@ function handleBrandClick() {
 function showAlert(text, isError = true) {
   if (UI.alertBanner && UI.alertText) {
     UI.alertText.textContent = text;
-    UI.alertBanner.style.backgroundColor = isError ? '#7f1d1d' : '#065f46';
+    UI.alertBanner.style.backgroundColor = isError ? '#fee2e2' : '#dcfce7';
+    UI.alertBanner.style.color = isError ? '#991b1b' : '#166534';
     UI.alertBanner.style.display = 'flex';
   }
 }
