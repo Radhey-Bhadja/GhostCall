@@ -183,13 +183,6 @@ function handleNavigationChange() {
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6 && extractedId !== AppState.currentRoomId) {
-      if (!AppState.myDisplayName || !AppState.myDisplayName.trim()) {
-        showHeroView();
-        if (UI.roomInput) UI.roomInput.value = extractedId;
-        showNameInputError('Please enter your name to join room #' + extractedId);
-        if (UI.nameInput) UI.nameInput.focus();
-        return;
-      }
       startVideoCallRoom(extractedId, true);
     }
   } else if (AppState.isCallActive) {
@@ -271,21 +264,16 @@ function updateLocalDisplayName(name) {
   if (UI.participantSelfInitial) UI.participantSelfInitial.textContent = initial;
 }
 
-function validateDisplayName(actionType = 'start') {
+function validateDisplayName() {
   const raw = UI.nameInput ? UI.nameInput.value : (AppState.myDisplayName || '');
   const val = raw.trim();
-  if (!val) {
-    const actionText = actionType === 'start' ? 'starting a video call' : 'joining a call';
-    showNameInputError(`Please enter your name before ${actionText}`);
-    if (UI.nameInput) {
-      UI.nameInput.value = '';
-      UI.nameInput.focus();
-    }
-    return false;
+  AppState.myDisplayName = val;
+  if (val) {
+    localStorage.setItem('ghostcall_username', val);
+  } else {
+    localStorage.removeItem('ghostcall_username');
   }
   clearNameInputError();
-  AppState.myDisplayName = val;
-  localStorage.setItem('ghostcall_username', val);
   return true;
 }
 
@@ -313,13 +301,6 @@ function checkUrlHashOnLoad() {
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6) {
-      if (!AppState.myDisplayName || !AppState.myDisplayName.trim()) {
-        showHeroView();
-        if (UI.roomInput) UI.roomInput.value = extractedId;
-        showNameInputError('Please enter your name to join room #' + extractedId);
-        if (UI.nameInput) UI.nameInput.focus();
-        return;
-      }
       startVideoCallRoom(extractedId, true);
       return;
     }
@@ -328,14 +309,14 @@ function checkUrlHashOnLoad() {
 }
 
 function createNewRoom() {
-  if (!validateDisplayName('start')) return;
+  validateDisplayName();
   unlockAudio();
   const randomRoomId = String(Math.floor(100000 + Math.random() * 900000));
   startVideoCallRoom(randomRoomId, false);
 }
 
 function joinExistingRoom() {
-  if (!validateDisplayName('join')) return;
+  validateDisplayName();
   unlockAudio();
   let val = UI.roomInput ? UI.roomInput.value.trim() : '';
   if (!val) {
