@@ -51,7 +51,7 @@ const AppState = {
   callStartTime: null,
   callTimerInterval: null,
   unreadChatCount: 0,
-  isSidebarOpen: window.innerWidth > 1024,
+  isSidebarOpen: false,
   currentSidebarTab: 'chat',
   isCallActive: false,
   suppressNavConfirm: false,
@@ -1850,8 +1850,7 @@ function showCallView() {
   if (UI.btnHeaderShare) UI.btnHeaderShare.style.display = 'inline-flex';
   if (UI.headerCallTimer) UI.headerCallTimer.style.display = 'inline-flex';
 
-  if (window.innerWidth > 1024) toggleSidebar(true);
-  else toggleSidebar(false);
+  toggleSidebar(false);
 }
 
 function handleBrandClick() {
