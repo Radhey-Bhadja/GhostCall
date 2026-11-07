@@ -1,73 +1,116 @@
-# 👻 GhostCall
+# 👻 GhostCall — WhatsApp Web Edition
 
 > **Zero Login, Zero Database, Instant Multi-Party WebRTC Video Calling**  
-> Modern, ultra-private, and designed for everyone — from kids to grandparents.
+> Redesigned with **WhatsApp Web's exact visual style, layout structure, color schemes, typography, and iconography**.
 
-GhostCall is a lightning-fast, secure group video calling web application that requires no login, no registration, and no database. Built with pure browser WebRTC mesh networking, it enables you to create or join private video rooms instantly via simple 6-digit codes or direct invite links, supporting low-latency multi-party video calls with end-to-end data privacy.
+GhostCall is a lightning-fast, ultra-private group video calling web application that requires no login, no accounts, and no backend database. Built with pure browser WebRTC mesh networking powered by [PeerJS](https://peerjs.com/), it enables you to create or join private encrypted video rooms instantly via simple 6-digit codes or direct invite links, featuring an authentic WhatsApp Web split-screen interface with in-call chat, participant status tracking, and HD video streaming.
 
 ![GhostCall Logo](logo.png)
 
 ---
 
-## ✨ Features & Upgrades
+## 🎨 WhatsApp Web UI & Design System
 
-- **No Logins & No Accounts**: Zero passwords, credentials, or tracking. Jump in and talk in 1 second.
-- **Mesh Peer-to-Peer Architecture**: Direct browser-to-browser WebRTC connection powered by [PeerJS](https://peerjs.com/) and public STUN servers.
-- **Deterministic Glare-Free WebRTC Mesh**: Eliminates call collision loops, audio echo, and duplicate video cards.
-- **Active Speaker Detection**: Real-time Web Audio API frequency analysis highlighting current speakers with an emerald glow.
-- **Live In-Call P2P Chat**: Private slide-out messaging drawer with unread badge counter, sent directly over DataChannels with zero server storage.
-- **Floating Emoji Reactions**: Send live reactions (❤️, 👍, 😂, 👏, 🎉, 🔥) that float dynamically across peers' screens.
-- **Camera Flip & Device Flexibility**: 1-tap camera toggle between front and environment cameras on mobile devices.
-- **Draggable & Expandable PiP Self-View**: Move your local preview anywhere on screen or double-click to enlarge.
-- **Smart Room Sharing**:
-  - 1-click room creation generates a 6-digit room code and direct URL hash (`#room-582910`).
-  - Native Web Share API integration on mobile.
-  - Direct 1-tap WhatsApp sharing (`https://api.whatsapp.com/send?text=...`).
-- **Essential Controls & Shortcuts**:
-  - 🎙️ Mute / Unmute Microphone (`M`)
-  - 📹 Turn Camera On / Off (`V`)
-  - 💻 Screen Sharing with live track replacement (`S`)
-  - 💬 Toggle In-Call Chat Drawer (`C`)
-  - ⏱️ Live Call Duration Timer
-  - 🔴 Smooth Leave Call confirmation dialog and instant **Rejoin Room** option.
-- **Responsive & Accessible**: Optimized for mobile, tablet, and desktop screens with safe-area insets.
+The application strictly adheres to WhatsApp Web's dark theme design system:
 
----
-
-## 🚀 Live Deployment (Vercel)
-
-GhostCall has zero backend dependencies. To deploy:
-
-1. Import this repository into [Vercel](https://vercel.com/new).
-2. Click **Deploy** (no build command or environment variables required).
-
-Or deploy via terminal:
-```bash
-npx vercel
-```
+- **Color Palette**:
+  - Primary Dark App Background: `#111b21`
+  - Panels, Sidebars & Header: `#202c33`
+  - Hover States & Card Insets: `#2a3942`
+  - Border & Dividers: `#222d34`
+  - WhatsApp Brand Green: `#00a884` (Active buttons, badges, speaking indicator)
+  - Outgoing Chat Bubble: `#005c4b` (with `#53bdeb` blue double checks `✓✓`)
+  - Incoming Chat Bubble: `#202c33`
+  - Text Colors: `#e9edef` (Primary), `#8696a0` (Secondary / timestamps / icons)
+  - Prominent End Call: `#ef4444`
+- **Split-Screen Layout Architecture**:
+  - **Left Sidebar**: 380px WhatsApp sidebar on desktop featuring:
+    - User profile header with live connection status
+    - Tabbed navigation: **Chats** (with unread message badge) and **People** (participant list with real-time mic/cam status and speaking waves)
+    - Full in-call messaging thread with end-to-end encryption banner, message timestamps, and WhatsApp input bar
+    - Room Code card with 1-click URL copy and WhatsApp share button
+  - **Right Main Stage**: Full-stage video canvas featuring:
+    - Dynamic auto-adjusting video grid for 1-on-1 and multi-party calls
+    - Active speaker detection with WhatsApp emerald border glow (`#00a884`)
+    - Circular WhatsApp avatar fallbacks with participant initials when camera is off
+    - Muted mic slash badge indicators on video tiles
+    - Floating pill-shaped call controls dock (`bg-[#111b21]/88` with backdrop blur)
+    - Draggable Picture-in-Picture (PiP) self-view card with corner snapping and double-click expand
+  - **Responsive Tablet & Mobile Mode**:
+    - Automatically collapses into a single-column layout on smaller screens
+    - Sidebar transitions smoothly into an off-canvas slide-out drawer accessible via the floating dock or stage button
 
 ---
 
-## 💻 Local Development
+## ⚡ Core Bug Fixes & WebRTC Architectural Upgrades
 
-Run any static HTTP server in the repository root:
+1. **Eliminated Brittle WebSocket Probing**:
+   - Replaced fragile raw WebSocket probes (`checkRoomExists`) that caused false "Room Doesn't Exist" timeouts on direct links. Any valid 6-digit link `#room-XXXXXX` allows instant, zero-login entry.
+2. **Deterministic Glare-Free Full Mesh**:
+   - Every peer establishes both a MediaConnection and a DataConnection with every other peer using deterministic ID ordering (`myPeerId > remotePeerId`), preventing call glare, collision loops, and duplicate video cards.
+   - If the room host leaves or reloads, guests remain connected directly via peer-to-peer data channels and media calls without the room collapsing.
+3. **Ghost / Phantom Room Elimination on Reload**:
+   - Browser tabs generate a unique session identifier (`sessionUid`) to avoid PeerJS ID collisions.
+   - Synchronous `beforeunload` / `pagehide` listeners broadcast `PEER_LEFT` and destroy the peer session immediately, eliminating 30-second stale phantom cards.
+4. **Resilient Media Constraints & Progressive Fallbacks**:
+   - Graceful progressive degradation: 1080p Studio $\rightarrow$ 720p HD $\rightarrow$ Basic video $\rightarrow$ Audio only $\rightarrow$ Fallback dummy canvas stream (preventing unhandled promise rejections and allowing WebRTC negotiation even if permissions are initially pending).
+5. **Memory Leak Patches**:
+   - Web Audio API analysers (`AudioContext`, `createMediaStreamSource`, `createAnalyser`) are properly disconnected on peer exit and room teardown.
+   - Event listeners and animation loops are guarded and cleaned up.
+6. **Reliable Track Replacement**:
+   - Video track replacement for Screen Sharing and Mobile Camera Flip safely matches video senders even when tracks are muted or null.
 
+---
+
+## ⌨️ Global Keyboard Shortcuts
+
+| Shortcut | Action |
+|:---:|:---|
+| **M** | Toggle Microphone (Mute / Unmute) |
+| **V** | Toggle Camera (Turn Video On / Off) |
+| **S** | Toggle Screen Sharing |
+| **C** | Toggle WhatsApp Left Sidebar (Chat / People) |
+| **F** | Toggle Full Screen Mode |
+| **Esc** | Close active modals / dismiss focus |
+
+---
+
+## 💻 Local Testing & Verification
+
+GhostCall requires no database, no Node.js build step, and no environment variables. Run any local static HTTP server from the project directory:
+
+### Option 1: Python HTTP Server
 ```bash
-# Python
 python -m http.server 8000
+```
+Then open `http://localhost:8000` in your browser.
 
-# or Node.js
+### Option 2: Node.js Serve / NPX
+```bash
 npx serve .
 ```
 
-Open `http://localhost:8000` in your browser.
+### Multi-Peer Verification Steps:
+1. Open `http://localhost:8000` in **Window 1** (or Chrome).
+2. Enter a display name (e.g. *Alice*) and click **"Start Video Call Now"**.
+3. Allow camera/microphone access. Your room code (e.g. `582910`) and URL hash `#room-582910` are generated.
+4. Open an Incognito window or a second browser (e.g. Edge / Firefox) at the same URL or direct link: `http://localhost:8000/#room-582910`.
+5. Enter a display name (e.g. *Bob*).
+6. Verify:
+   - Video feeds connect immediately with low latency.
+   - Active speaker detection highlights the speaking participant with a WhatsApp green ring.
+   - Muting audio or stopping video updates the remote card with a muted mic badge or WhatsApp avatar.
+   - In-call chat sends real-time messages with timestamps and blue double checkmarks (`✓✓`).
+   - Screen sharing replaces the video stream smoothly across peers.
+   - Closing one tab immediately removes the participant tile on the remaining tab without phantom delay.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 Deployment (Vercel)
 
-- **HTML5 & CSS3** (Vanilla, responsive CSS Grid and Flexbox, Glassmorphism, animations)
-- **Vanilla JavaScript (ES6+)**
-- **WebRTC & PeerJS** (Signaling, MediaStreams, and DataChannels)
-- **Web Audio API** (Real-time AnalyserNode for active speaker detection)
-- **Google STUN** (`stun:stun.l.google.com:19302`) for NAT traversal
+Deploy to Vercel in 1 click (static zero-configuration):
+
+```bash
+npx vercel
+```
+Or import into [vercel.com](https://vercel.com/new). No build commands or backend services required.

@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>GhostCall — Zero Login Instant Video Calls</title>
-  <meta name="description" content="GhostCall: Instant, private peer-to-peer group video calls for friends and family with no logins, accounts, or tracking." />
+  <title>GhostCall — WhatsApp Web Style Video Calling</title>
+  <meta name="description" content="GhostCall: Zero-login, instant peer-to-peer group video calling designed with WhatsApp Web visual style and layout." />
   <link rel="icon" type="image/png" href="logo.png" />
   
-  <!-- Premium Modern Typography -->
+  <!-- Premium Modern Typography: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
@@ -26,19 +26,24 @@
 <body>
 
   <!-- =========================================================================
-       GLOBAL APP HEADER
+       GLOBAL APP HEADER (WhatsApp Web Style Dark Bar)
        ========================================================================= -->
   <header class="main-header" id="app-header">
     <div class="brand-wrap" onclick="handleBrandClick()" title="GhostCall Home" role="button" tabindex="0">
-      <img src="logo.png" alt="GhostCall Logo" class="brand-logo-img" />
-      <div class="brand-title">GhostCall</div>
+      <div class="brand-logo-glow">
+        <img src="logo.png" alt="GhostCall Logo" class="brand-logo-img" />
+      </div>
+      <div class="brand-meta">
+        <span class="brand-title">GhostCall</span>
+        <span class="brand-tagline">WhatsApp Web Edition</span>
+      </div>
     </div>
 
     <!-- Active Call Header Widgets -->
     <div class="call-top-bar header-right" id="call-top-bar">
       <!-- Left Call Status: People in room -->
       <div class="top-bar-left">
-        <div class="room-badge-pill participants-pill" id="header-participants-pill" style="display: none;" title="Participants in room">
+        <div class="room-badge-pill participants-pill" id="header-participants-pill" style="display: none;" title="Participants in room" onclick="switchSidebarTab('people')">
           <svg class="pill-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
@@ -67,11 +72,11 @@
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
           </svg>
-          <span class="share-text">Share</span>
+          <span class="share-text">Invite</span>
         </button>
       </div>
 
-      <!-- Right Call Status: Timing Countdown -->
+      <!-- Right Call Status: Call Duration Timer -->
       <div class="top-bar-right">
         <div class="call-timer-pill" id="header-call-timer" style="display: none;" title="Call duration">
           <span class="timer-dot"></span>
@@ -81,31 +86,36 @@
     </div>
   </header>
 
-  <!-- Notification & Permission Banner -->
+  <!-- Notification & Permission Alert Banner -->
   <aside id="alert-banner" class="alert-banner" role="alert" style="display: none;">
     <div class="alert-content">
       <span class="alert-icon">⚠️</span>
-      <span id="alert-text">Please allow Camera and Microphone permissions to talk with your friends.</span>
+      <span id="alert-text">Please allow Camera and Microphone permissions to join the video call.</span>
     </div>
     <div class="alert-actions">
-      <button class="alert-btn" id="alert-action-btn" onclick="retryPermissions()">Retry</button>
+      <button class="alert-btn" id="alert-action-btn" onclick="retryPermissions()">Allow Access</button>
       <button class="alert-dismiss" onclick="dismissAlert()" aria-label="Dismiss">✕</button>
     </div>
   </aside>
 
   <!-- =========================================================================
-       HERO WELCOME VIEW (Clean, Simple, Intuitive)
+       HERO WELCOME VIEW (WhatsApp Web Style Zero-Login Hub)
        ========================================================================= -->
   <main id="hero-view">
     <div class="hero-container">
       <!-- Left Column: Friendly Hero Intro -->
       <div class="hero-text-col">
+        <div class="wa-badge">
+          <span class="wa-badge-dot"></span>
+          <span>Zero Login • End-to-End Encrypted</span>
+        </div>
         <h1 class="hero-headline">
-          Video calls made <span class="gradient-text">simple.</span>
+          Instant video calls,<br />
+          <span class="gradient-text">WhatsApp Web style.</span>
         </h1>
 
         <p class="hero-description">
-          Crystal clear, encrypted group video calls directly in your browser. Zero downloads, zero accounts, and zero tracking. Just tap and talk.
+          Seamless multi-peer video conferencing directly in your browser. No registration, no downloads, zero database, and 100% peer-to-peer privacy.
         </p>
 
         <!-- Quick Display Name Personalization -->
@@ -113,17 +123,24 @@
           <label for="input-display-name">Your Display Name <span class="label-optional">(Optional)</span></label>
           <div class="name-input-wrap">
             <span class="name-avatar-preview" id="hero-avatar-preview">👤</span>
-            <input type="text" id="input-display-name" placeholder="Enter your name (Optional)" maxlength="24" autocomplete="name" />
+            <input type="text" id="input-display-name" placeholder="Enter your name (e.g. Alex)" maxlength="24" autocomplete="name" />
           </div>
-          <span class="name-hint">Optional: Peers will see this name during the call</span>
+          <span class="name-hint">Peers in the call will see this name on your video feed</span>
         </div>
       </div>
 
-      <!-- Right Column: Instant Action Hub -->
+      <!-- Right Column: WhatsApp Styled Instant Action Hub -->
       <div class="hero-hub-box">
         <div class="hub-header">
-          <h2 class="hub-header-title">Start or Join a Call</h2>
-          <p class="hub-header-sub">No registration or installation required</p>
+          <div class="hub-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#00a884">
+              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="hub-header-title">Start or Join Call</h2>
+            <p class="hub-header-sub">Instant peer-to-peer room creation</p>
+          </div>
         </div>
 
         <!-- Action 1: Create Call -->
@@ -141,27 +158,38 @@
         </div>
 
         <div class="hub-divider">
-          <span>or join with 6-digit code</span>
+          <span>or join with 6-digit room code</span>
         </div>
 
         <!-- Action 2: Join Existing Call -->
         <div class="hub-action-section">
           <div class="code-entry-row" id="code-entry-container">
-            <input 
-              type="text" 
-              id="input-room-code" 
-              placeholder="Enter 6-digit code..." 
-              inputmode="numeric"
-              pattern="[0-9]*"
-              maxlength="6" 
-              autocomplete="off"
-              spellcheck="false"
-            />
+            <div class="code-input-wrapper">
+              <span class="code-hash-icon">#</span>
+              <input 
+                type="text" 
+                id="input-room-code" 
+                placeholder="Enter 6-digit code..." 
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="6" 
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
             <button class="btn-pill-join" id="btn-join-room" onclick="joinExistingRoom()">
               <span>Join</span>
             </button>
           </div>
           <div class="input-error-msg" id="room-input-error" style="display: none;"></div>
+        </div>
+
+        <!-- Zero-Login Guarantee Badge -->
+        <div class="hub-footer-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#00a884">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+          <span>Direct mesh connection · No media stored on servers</span>
         </div>
       </div>
     </div>
@@ -174,17 +202,17 @@
           <div class="guide-box">
             <div class="guide-num">1</div>
             <h3>Tap "Start Video Call"</h3>
-            <p>Your room opens instantly right in your browser. No signup, no passwords.</p>
+            <p>Your room opens instantly in your browser with zero login walls or sign-ups.</p>
           </div>
           <div class="guide-box">
             <div class="guide-num">2</div>
-            <h3>Share Room Link</h3>
-            <p>Copy your room link or 6-digit code and share it via WhatsApp, SMS, or email.</p>
+            <h3>Share Link or Code</h3>
+            <p>Invite friends with a 1-tap WhatsApp share link or simple 6-digit room code.</p>
           </div>
           <div class="guide-box">
             <div class="guide-num">3</div>
-            <h3>Talk & Enjoy</h3>
-            <p>Experience low-latency HD video, noise-cancelled audio, and screen sharing.</p>
+            <h3>Talk & Collaborate</h3>
+            <p>Enjoy HD video, studio-grade audio, real-time encrypted chat, and screen sharing.</p>
           </div>
         </div>
       </div>
@@ -192,11 +220,193 @@
   </main>
 
   <!-- =========================================================================
-       ACTIVE VIDEO CALL ROOM VIEW (WhatsApp Style Video + Chat Section)
+       ACTIVE VIDEO CALL ROOM VIEW (WhatsApp Web Split-Screen Architecture)
+       Left Sidebar: Chat & Room Info | Right Canvas: Dynamic Video Grid & Dock
        ========================================================================= -->
   <section id="call-view" class="call-view-container" style="display: none;">
-    <!-- Main Calling Canvas -->
+
+    <!-- =======================================================================
+         WHATSAPP WEB LEFT SIDEBAR (Collapsible on mobile, Split on desktop)
+         ======================================================================= -->
+    <aside id="call-sidebar" class="wa-sidebar" aria-label="Call details and chat">
+      
+      <!-- 1. Sidebar Top Header -->
+      <div class="sidebar-header">
+        <div class="user-meta-wrap">
+          <div class="sidebar-user-avatar" id="sidebar-user-avatar">
+            <span id="sidebar-user-initial">Y</span>
+          </div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="sidebar-user-name">You</div>
+            <div class="sidebar-status-pill">
+              <span class="status-live-dot"></span>
+              <span id="sidebar-connection-status">Online · In Call</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-header-actions">
+          <!-- Copy link action button -->
+          <button class="btn-sidebar-icon" onclick="copyInviteLink()" title="Copy Invite Link" aria-label="Copy Invite Link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <!-- Share via WhatsApp action button -->
+          <button class="btn-sidebar-icon btn-wa-icon" onclick="shareToWhatsApp()" title="Share via WhatsApp" aria-label="Share via WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#00a884">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+            </svg>
+          </button>
+          <!-- Close sidebar button (active on mobile) -->
+          <button class="btn-sidebar-icon btn-close-sidebar" onclick="toggleSidebar(false)" title="Close Sidebar" aria-label="Close Sidebar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. WhatsApp Navigation Tabs: Chat vs People -->
+      <nav class="sidebar-tabs" role="tablist">
+        <button class="tab-btn active" id="tab-btn-chat" onclick="switchSidebarTab('chat')" role="tab" aria-selected="true" aria-controls="sidebar-pane-chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Chat</span>
+          <span class="tab-unread-counter" id="sidebar-tab-unread" style="display: none;">0</span>
+        </button>
+        <button class="tab-btn" id="tab-btn-people" onclick="switchSidebarTab('people')" role="tab" aria-selected="false" aria-controls="sidebar-pane-people">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>People</span>
+          <span class="tab-count-badge" id="sidebar-people-count">1</span>
+        </button>
+      </nav>
+
+      <!-- 3. Tab Pane 1: WhatsApp In-Call Live Chat -->
+      <section class="sidebar-pane active" id="sidebar-pane-chat" role="tabpanel" aria-labelledby="tab-btn-chat">
+        <div class="chat-messages" id="chat-messages-list">
+          <!-- WhatsApp End-to-End Encryption Banner -->
+          <div class="chat-system-msg wa-security-notice">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffd279" class="wa-shield-lock">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
+            <span>Messages are end-to-end encrypted. No one outside of this room can read them.</span>
+          </div>
+          <div class="chat-date-chip">TODAY</div>
+        </div>
+
+        <!-- WhatsApp Chat Input Bar -->
+        <form class="chat-input-bar" id="chat-form" onsubmit="handleSendChatMessage(event)">
+          <div class="chat-input-pill">
+            <span class="chat-input-smiley-icon" aria-hidden="true" title="Emoji">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#8696a0">
+                <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+              </svg>
+            </span>
+            <input type="text" id="chat-input" placeholder="Type a message..." maxlength="300" autocomplete="off" />
+          </div>
+          <button type="submit" id="btn-chat-send" class="btn-chat-send-wa" aria-label="Send Message" title="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </form>
+      </section>
+
+      <!-- 4. Tab Pane 2: Participants & Room Details -->
+      <section class="sidebar-pane" id="sidebar-pane-people" role="tabpanel" aria-labelledby="tab-btn-people" style="display: none;">
+        <div class="people-pane-content">
+          <!-- Room Info Card -->
+          <div class="room-info-card">
+            <div class="room-info-header">
+              <span class="room-info-label">Active Room Code</span>
+              <span class="room-info-code" id="sidebar-room-code">------</span>
+            </div>
+            <div class="room-info-actions">
+              <button class="btn-card-action" onclick="copyInviteLink()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Copy Link</span>
+              </button>
+              <button class="btn-card-action btn-card-wa" onclick="shareToWhatsApp()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+                </svg>
+                <span>WhatsApp</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Participants List Header -->
+          <div class="participants-list-header">
+            <span class="participants-list-title">Participants in Call</span>
+            <span class="participants-count-tag" id="sidebar-participants-count-tag">1 Person</span>
+          </div>
+
+          <!-- Participants List Container -->
+          <div class="participants-list" id="participants-list-items">
+            <!-- Self entry -->
+            <div class="participant-item is-self" id="participant-self-row">
+              <div class="participant-avatar">
+                <span id="participant-self-initial">Y</span>
+                <span class="speaking-wave-ring" id="participant-self-speaking"></span>
+              </div>
+              <div class="participant-details">
+                <div class="participant-name-row">
+                  <span class="participant-name" id="participant-self-name">You</span>
+                  <span class="participant-badge-self">You</span>
+                </div>
+                <span class="participant-role-sub">Local Device</span>
+              </div>
+              <div class="participant-status-icons">
+                <span class="status-icon" id="participant-self-mic" title="Microphone Active">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
+                </span>
+                <span class="status-icon" id="participant-self-cam" title="Camera Active">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                </span>
+              </div>
+            </div>
+            <!-- Dynamic remote peer entries inserted here -->
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- =======================================================================
+         RIGHT MAIN STAGE: Calling Canvas, Dynamic Video Grid, PiP & Controls
+         ======================================================================= -->
     <div class="call-stage-area" id="call-stage">
+      
+      <!-- Top Stage Bar: Sidebar Toggle & Connection Status -->
+      <div class="stage-top-overlay">
+        <button class="stage-sidebar-toggle" id="btn-toggle-sidebar" onclick="toggleSidebar()" title="Toggle WhatsApp Sidebar" aria-label="Toggle WhatsApp Sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <span class="stage-sidebar-text">Chat & Info</span>
+          <span class="stage-unread-dot" id="stage-unread-dot" style="display: none;"></span>
+        </button>
+
+        <div class="stage-status-badge" id="stage-status-badge">
+          <span class="stage-status-dot"></span>
+          <span id="stage-status-text">Connected</span>
+        </div>
+      </div>
+
       <!-- Dynamic Video Grid for Remote Participants -->
       <div id="video-grid" class="layout-1">
         <!-- Waiting screen if room is empty: Full-screen self camera preview with floating invite card -->
@@ -207,7 +417,16 @@
               <span class="waiting-pulse-dot"></span>
               <span>Room is Ready</span>
             </div>
-            <p>You're the first one here. Share the 6-digit code or link to start talking.</p>
+            <h3 class="waiting-title">Waiting for others to join...</h3>
+            <p class="waiting-desc">Share your 6-digit room code or invite link to start talking in private HD video.</p>
+            <div class="waiting-code-display" onclick="copyRoomCode()" title="Click to copy room code">
+              <span class="waiting-code-label">ROOM CODE</span>
+              <strong class="waiting-code-num" id="waiting-code-text">------</strong>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </div>
             <div class="waiting-actions">
               <button class="btn-emerald-cta" onclick="handleShareAction()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -221,7 +440,7 @@
         </div>
       </div>
 
-      <!-- Local Self-View (Picture-in-Picture Box) -->
+      <!-- Local Self-View (WhatsApp Style Floating Picture-in-Picture Card) -->
       <div id="local-video-box" class="local-pip-box" title="Drag to reposition, double-click to expand/shrink">
         <video id="local-video" autoplay playsinline muted></video>
         <div id="local-avatar" class="avatar-placeholder" style="display: none;">
@@ -230,18 +449,25 @@
           </div>
           <span class="avatar-name" id="local-avatar-name">You</span>
         </div>
+        <!-- Muted mic slash badge over tile -->
+        <div class="tile-mic-slash" id="local-mic-slash" style="display: none;" title="Microphone is muted">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l4.41 4.41c-.63.45-1.35.78-2.06.9V21h-2v-2.28c-3.28-.49-6-3.31-6-6.72H5c0 3.03 2.14 5.56 5 6.09v.01l-5.73-5.73L4.27 3z"/>
+          </svg>
+        </div>
         <div class="member-status-dot" id="local-mic-mini" title="You (Microphone on)"></div>
-        <span id="local-tag-name" style="display: none;">You</span>
+        <div class="tile-name-tag" id="local-tag-name">You</div>
         <button class="btn-pip-flip" id="btn-camera-flip" onclick="flipCamera(event)" title="Flip Camera" style="display: none;">
           🔄
         </button>
       </div>
 
-
-      <!-- Bottom Controls Floating Dock (WhatsApp Call Bar) -->
+      <!-- =====================================================================
+           FLOATING WHATSAPP CALL CONTROLS DOCK (Pill-Shaped Translucent Bar)
+           ===================================================================== -->
       <footer class="controls-dock-wrap" id="controls-dock">
         <div class="controls-pill">
-          <!-- Mic Toggle -->
+          <!-- 1. Mic Toggle -->
           <button class="ctrl-btn active-state" id="btn-mic" onclick="toggleMicrophone()" title="Toggle Microphone (M)" aria-label="Toggle Microphone">
             <svg class="ctrl-icon" id="icon-mic-on" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
@@ -252,7 +478,7 @@
             <span class="btn-label" id="label-mic">Mic</span>
           </button>
 
-          <!-- Camera Toggle -->
+          <!-- 2. Camera Toggle -->
           <button class="ctrl-btn active-state" id="btn-cam" onclick="toggleCamera()" title="Toggle Camera (V)" aria-label="Toggle Camera">
             <svg class="ctrl-icon" id="icon-cam-on" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
@@ -263,7 +489,7 @@
             <span class="btn-label" id="label-cam">Camera</span>
           </button>
 
-          <!-- Screen Share -->
+          <!-- 3. Screen Share Toggle -->
           <button class="ctrl-btn" id="btn-screen" onclick="toggleScreenShare()" title="Share Screen (S)" aria-label="Share Screen">
             <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
@@ -271,27 +497,26 @@
             <span class="btn-label" id="label-screen">Share</span>
           </button>
 
-          <!-- Chat Toggle (WhatsApp Chat Section) -->
-          <button class="ctrl-btn" id="btn-chat" onclick="toggleChatDrawer()" title="Open Chat (C)" aria-label="Open Chat">
+          <!-- 4. WhatsApp Sidebar / Chat Drawer Toggle -->
+          <button class="ctrl-btn" id="btn-chat" onclick="toggleSidebar()" title="Toggle Chat & Info (C)" aria-label="Toggle Chat & Info">
             <div class="icon-with-badge">
               <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
               <span class="badge-count" id="chat-unread-badge" style="display: none;">0</span>
             </div>
-            <span class="btn-label">Chat</span>
+            <span class="btn-label" id="label-chat">Chat</span>
           </button>
 
-
-          <!-- Share Link -->
-          <button class="ctrl-btn" onclick="handleShareAction()" title="Share Invite Link" aria-label="Share Link">
+          <!-- 5. Invite Modal Trigger -->
+          <button class="ctrl-btn" onclick="handleShareAction()" title="Invite Friends to Call" aria-label="Invite Friends">
             <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
             </svg>
             <span class="btn-label">Invite</span>
           </button>
 
-          <!-- Fullscreen Toggle -->
+          <!-- 6. Fullscreen Toggle -->
           <button class="ctrl-btn" id="btn-fullscreen" onclick="toggleFullScreen()" title="Full Screen (F)" aria-label="Toggle Full Screen">
             <svg class="ctrl-icon" id="icon-fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
@@ -302,7 +527,7 @@
             <span class="btn-label" id="label-fs">Full</span>
           </button>
 
-          <!-- Leave Call Button -->
+          <!-- 7. End Call Prominent Red Action Button -->
           <button class="ctrl-btn btn-hangup" id="btn-leave" onclick="confirmLeaveCall()" title="End Call" aria-label="End Call">
             <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
@@ -312,68 +537,13 @@
         </div>
       </footer>
     </div>
-
-    <!-- WhatsApp In-Call Chat Section (Authentic WhatsApp Theme) -->
-    <aside id="chat-drawer" class="chat-drawer" aria-hidden="true">
-      <div class="chat-header">
-        <button class="btn-chat-back" onclick="handleChatBack()" title="Back to Video Call" aria-label="Back to Video Call">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <div class="chat-header-info">
-          <div class="chat-header-avatar">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#aebac1">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
-          </div>
-          <div class="chat-header-details">
-            <h3 class="chat-header-title">Room Chat</h3>
-            <span class="chat-header-sub"><span class="wa-lock-icon">🔒</span> End-to-end encrypted</span>
-          </div>
-        </div>
-        <button class="btn-chat-close" onclick="handleChatBack()" aria-label="Back to Video Call" title="Back to Video Call">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <div class="chat-messages" id="chat-messages-list">
-        <div class="chat-system-msg wa-security-notice">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="#ffd279" class="wa-shield-lock">
-            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-          </svg>
-          <span>Messages are end-to-end encrypted. No one outside of this room can read them.</span>
-        </div>
-        <div class="chat-date-chip">TODAY</div>
-      </div>
-
-      <form class="chat-input-bar" id="chat-form" onsubmit="handleSendChatMessage(event)">
-        <div class="chat-input-pill">
-          <span class="chat-input-smiley-icon" aria-hidden="true" title="Message">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#8696a0">
-              <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
-            </svg>
-          </span>
-          <input type="text" id="chat-input" placeholder="Type a message..." maxlength="300" autocomplete="off" />
-        </div>
-        <button type="submit" id="btn-chat-send" class="btn-chat-send-wa" aria-label="Send Message" title="Send">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
-      </form>
-    </aside>
   </section>
 
   <!-- =========================================================================
-       MODALS & DIALOGS
+       MODALS & DIALOGS (WhatsApp Dark Aesthetic)
        ========================================================================= -->
 
-  <!-- Modern Leave Call Confirmation Modal -->
+  <!-- Leave Call Confirmation Modal -->
   <div id="modal-leave" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-leave-title">
     <div class="modal-card">
       <div class="modal-icon-wrap danger-icon">
@@ -392,18 +562,18 @@
     </div>
   </div>
 
-  <!-- Room Error / Not Found Modal Pop-up -->
+  <!-- Room Error / Notice Modal -->
   <div id="modal-room-not-found" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-room-error-title">
     <div class="modal-card">
-      <div class="modal-icon-wrap danger-icon">
+      <div class="modal-icon-wrap warning-icon">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
       </div>
-      <h3 id="modal-room-error-title">Room Doesn't Exist</h3>
-      <p id="modal-room-error-desc">This room doesn't exist or your code is wrong. Please check your room code and try again.</p>
+      <h3 id="modal-room-error-title">Invalid Room Code</h3>
+      <p id="modal-room-error-desc">Please enter a valid 6-digit room code to join or start a new call.</p>
       <div class="modal-actions">
         <button class="modal-btn btn-primary" onclick="closeRoomNotFoundModal()">OK, Got It</button>
       </div>
@@ -417,7 +587,7 @@
         <h3 id="modal-share-title">Invite to Call</h3>
         <button class="btn-modal-close" onclick="closeShareModal()" aria-label="Close">✕</button>
       </div>
-      <p class="modal-share-desc">Anyone with this link or room code can join your video call immediately.</p>
+      <p class="modal-share-desc">Anyone with this link or 6-digit room code can join your video call immediately.</p>
       
       <div class="share-code-box">
         <span class="share-label">Room Code</span>
@@ -443,7 +613,7 @@
   <!-- Notification Toast -->
   <div id="toast-msg" class="toast-notification" role="status" aria-live="polite">
     <span class="toast-dot" id="toast-dot"></span>
-    <span class="toast-text" id="toast-text">Invite link copied to clipboard!</span>
+    <span class="toast-text" id="toast-text">Link copied to clipboard</span>
   </div>
 
   <!-- Application Logic -->
