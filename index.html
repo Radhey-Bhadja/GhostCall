@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>GhostCall — WhatsApp Video Call</title>
-  <meta name="description" content="GhostCall: Zero-login, instant private WebRTC video calling designed with WhatsApp Web light interface." />
+  <meta name="description" content="GhostCall: Zero-login, instant private WebRTC video calling designed with WhatsApp Web interface." />
   <link rel="icon" type="image/png" href="logo.png" />
   
   <!-- Modern Clean Typography -->
@@ -26,21 +26,20 @@
 <body class="wa-light-theme">
 
   <!-- =========================================================================
-       APP HEADER (WhatsApp Web Light Header with Green Accent)
+       APP HEADER (See-Through Frosted Navbar with Zero Overflow on Mobile)
        ========================================================================= -->
   <header class="main-header" id="app-header">
-    <div class="brand-wrap" onclick="handleBrandClick()" title="GhostCall Home" role="button" tabindex="0">
+    <!-- Brand: Visible on Landing Page, Hidden During Active Call -->
+    <div class="brand-wrap" id="header-brand" onclick="handleBrandClick()" title="GhostCall Home" role="button" tabindex="0">
       <img src="logo.png" alt="GhostCall Logo" class="brand-logo-img" />
-      <div class="brand-meta">
-        <span class="brand-title">GhostCall</span>
-      </div>
+      <span class="brand-title">GhostCall</span>
     </div>
 
-    <!-- Active Call Header Controls -->
+    <!-- Active Call Header Controls (See-Through, Fully Responsive Across Mobile) -->
     <div class="call-top-bar" id="call-top-bar">
-      <!-- Participant Count Badge -->
+      <!-- 1. Participant Count Pill -->
       <button class="header-pill participants-pill" id="header-participants-pill" style="display: none;" title="Participants in room" onclick="switchSidebarTab('people')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
           <circle cx="9" cy="7" r="4"></circle>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -49,32 +48,32 @@
         <span id="participant-count-text">1 in call</span>
       </button>
 
-      <!-- Room Code Pill (Click to Copy) -->
-      <button class="header-pill room-code-pill" id="header-room-pill" style="display: none;" title="Click to copy Room Code" onclick="copyRoomCode()">
+      <!-- 2. Room Code Pill (Tap to Copy) -->
+      <button class="header-pill room-code-pill" id="header-room-pill" style="display: none;" title="Tap to copy Room Code" onclick="copyRoomCode()">
         <span class="badge-prefix">Room:</span>
         <strong id="display-room-id">------</strong>
-        <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
       </button>
 
-      <!-- Live Call Duration Timer -->
+      <!-- 3. Live Call Duration Timer -->
       <div class="header-timer" id="header-call-timer" style="display: none;" title="Call duration">
         <span class="timer-dot"></span>
         <span id="call-duration-text">00:00</span>
       </div>
 
-      <!-- Quick Invite / Share Button -->
+      <!-- 4. Quick Invite / Share Button -->
       <button class="btn-header-invite" id="btn-header-share" onclick="handleShareAction()" style="display: none;" title="Invite Friends">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="18" cy="5" r="3"></circle>
           <circle cx="6" cy="12" r="3"></circle>
           <circle cx="18" cy="19" r="3"></circle>
           <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
         </svg>
-        <span>Invite</span>
+        <span class="invite-btn-text">Invite</span>
       </button>
     </div>
   </header>
@@ -92,19 +91,16 @@
   </aside>
 
   <!-- =========================================================================
-       HERO LANDING VIEW (WhatsApp Light Clean Card)
+       HERO LANDING VIEW (Single-Column Centered Clean WhatsApp Card)
        ========================================================================= -->
   <main id="hero-view" class="hero-screen">
-    <!-- WhatsApp Green Decorative Banner Strip -->
-    <div class="hero-top-strip"></div>
-
     <div class="hero-card">
       <div class="hero-card-header">
         <div class="hero-logo-box">
           <img src="logo.png" alt="GhostCall" />
         </div>
         <h1 class="hero-title">GhostCall</h1>
-        <p class="hero-subtitle">Instant, encrypted WebRTC video calls with zero login</p>
+        <p class="hero-subtitle">Zero-login, instant private WebRTC video calling</p>
       </div>
 
       <!-- Display Name Input -->
@@ -218,7 +214,6 @@
       <!-- Tab 1: Live Chat -->
       <section class="sidebar-pane" id="sidebar-pane-chat">
         <div class="chat-messages" id="chat-messages-list">
-          <!-- WhatsApp Light Security Banner -->
           <div class="chat-system-msg wa-security-notice">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="#667781">
               <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
@@ -289,20 +284,15 @@
     <!-- Right Calling Stage Canvas -->
     <div class="call-stage-area" id="call-stage">
       
-      <!-- Stage Mobile Top Overlay Bar -->
+      <!-- Stage Mobile Top Overlay Bar (Chat Drawer Shortcut) -->
       <div class="stage-top-overlay">
         <button class="stage-btn-toggle" id="btn-toggle-sidebar" onclick="toggleSidebar()" title="Toggle Chat & Info">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
           <span class="stage-btn-text">Chat</span>
           <span class="stage-unread-dot" id="stage-unread-dot" style="display: none;"></span>
         </button>
-
-        <div class="stage-status-badge">
-          <span class="stage-live-dot"></span>
-          <span id="stage-status-text">Connected</span>
-        </div>
       </div>
 
       <!-- Dynamic Video Grid -->
@@ -413,7 +403,7 @@
   </section>
 
   <!-- =========================================================================
-       MODALS (Clean WhatsApp Light Design)
+       MODALS (Clean WhatsApp Light Dialogs)
        ========================================================================= -->
 
   <!-- Leave Call Confirmation Modal -->

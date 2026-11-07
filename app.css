@@ -1,16 +1,7 @@
 /* ==========================================================================
-   GhostCall — WhatsApp Web Light Theme & Call UI Design System
+   GhostCall — WhatsApp Web Light Theme & Calling Interface
    Aesthetic: WhatsApp Light Mode (Clean, Minimal, Mobile-First)
-   Colors:
-     - Header Brand Green: #008069
-     - Page Background: #f0f2f5
-     - Surface / Panels: #ffffff
-     - Chat Background: #efeae2 (WhatsApp Wallpaper Doodle)
-     - Outgoing Bubble: #d9fdd3
-     - Incoming Bubble: #ffffff
-     - Primary Text: #111b21
-     - Secondary Text: #667781
-     - End Call Red: #ea0038
+   See-Through Frosted Navbar • Zero-Clutter Single-Column Hero
    ========================================================================== */
 
 :root {
@@ -18,7 +9,7 @@
   --wa-green: #008069;
   --wa-green-hover: #017560;
   --wa-green-light: #d9fdd3;
-  --wa-green-badge: rgba(0, 128, 105, 0.12);
+  --wa-green-badge: rgba(0, 128, 105, 0.1);
 
   --wa-bg-body: #f0f2f5;
   --wa-bg-surface: #ffffff;
@@ -50,15 +41,13 @@
   --shadow-sm: 0 1px 3px rgba(11, 20, 26, 0.08);
   --shadow-card: 0 4px 16px rgba(11, 20, 26, 0.08);
   --shadow-modal: 0 16px 36px rgba(11, 20, 26, 0.16);
-  --shadow-dock: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-dock: 0 8px 24px rgba(0, 0, 0, 0.45);
 
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==========================================================================
-   Base Reset
-   ========================================================================== */
+/* Base Reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -94,7 +83,9 @@ input {
 }
 
 /* ==========================================================================
-   Header Bar (WhatsApp Web Light Header)
+   Main Header Bar
+   - Landing view: Clean white header with logo & GhostCall title
+   - Call view: See-through frosted navbar across mobile, logo completely hidden
    ========================================================================== */
 .main-header {
   height: 52px;
@@ -106,13 +97,10 @@ input {
   padding: 0 16px;
   z-index: 50;
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
 }
 
-body.in-call-mode .main-header {
-  background-color: var(--wa-bg-surface);
-}
-
+/* Brand Area (Logo + Title) */
 .brand-wrap {
   display: flex;
   align-items: center;
@@ -122,8 +110,8 @@ body.in-call-mode .main-header {
 }
 
 .brand-logo-img {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
@@ -134,47 +122,78 @@ body.in-call-mode .main-header {
   letter-spacing: -0.3px;
 }
 
-.call-top-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* ==========================================================================
+   IN-CALL HEADER (See-Through Navbar + Logo Removed)
+   ========================================================================== */
+body.in-call-mode .main-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: rgba(17, 27, 33, 0.65) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 12px;
+  z-index: 50;
 }
 
+/* Remove logo and brand in active call mode as requested */
+body.in-call-mode .brand-wrap {
+  display: none !important;
+}
+
+/* Top bar fills 100% width in call mode */
+body.in-call-mode .call-top-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* In-Call Header Frosted Glass Pills */
 .header-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: var(--wa-bg-hover);
-  border: 1px solid var(--wa-border);
-  padding: 4px 10px;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 5px 10px;
   border-radius: var(--radius-full);
   font-size: 12px;
-  color: var(--wa-text-secondary);
+  color: #e9edef;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 1;
 }
 
 .header-pill:hover {
-  background-color: #e9edef;
-  color: var(--wa-text-primary);
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .header-pill strong {
   font-family: var(--font-mono);
-  color: var(--wa-green);
+  color: #00a884;
   font-size: 13px;
+  letter-spacing: 0.5px;
 }
 
 .header-timer {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: var(--wa-bg-hover);
-  border: 1px solid var(--wa-border);
-  padding: 4px 10px;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 5px 10px;
   border-radius: var(--radius-full);
   font-size: 12px;
   font-family: var(--font-mono);
-  color: var(--wa-text-primary);
+  color: #ffffff;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .timer-dot {
@@ -193,7 +212,7 @@ body.in-call-mode .main-header {
 .btn-header-invite {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background-color: var(--wa-green);
   color: #ffffff;
   font-size: 12px;
@@ -201,6 +220,8 @@ body.in-call-mode .main-header {
   padding: 5px 12px;
   border-radius: var(--radius-full);
   transition: background-color var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-header-invite:hover {
@@ -247,7 +268,7 @@ body.in-call-mode .main-header {
 }
 
 /* ==========================================================================
-   Hero Landing Screen (WhatsApp Clean Card Design)
+   Hero Landing Screen (Clean Single-Column WhatsApp Card, Zero Left Column)
    ========================================================================== */
 .hero-screen {
   width: 100%;
@@ -255,38 +276,24 @@ body.in-call-mode .main-header {
   height: calc(100dvh - 52px);
   background-color: var(--wa-bg-body);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px 16px;
-  position: relative;
+  padding: 24px 16px;
   overflow-y: auto;
-}
-
-/* WhatsApp Green Decorative Top Strip */
-.hero-top-strip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 128px;
-  background-color: var(--wa-green);
-  z-index: 0;
 }
 
 .hero-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
   background-color: var(--wa-bg-surface);
   border-radius: var(--radius-lg);
-  padding: 32px 28px;
+  padding: 32px 24px;
   box-shadow: var(--shadow-modal);
-  z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin: auto 0;
+  gap: 16px;
   border: 1px solid var(--wa-border);
+  margin: auto;
 }
 
 .hero-card-header {
@@ -472,7 +479,7 @@ body.in-call-mode .main-header {
   font-size: 12px;
   color: var(--wa-text-secondary);
   border-top: 1px solid var(--wa-border);
-  padding-top: 14px;
+  padding-top: 12px;
 }
 
 /* ==========================================================================
@@ -480,8 +487,8 @@ body.in-call-mode .main-header {
    ========================================================================== */
 .call-view-container {
   width: 100vw;
-  height: calc(100vh - 52px);
-  height: calc(100dvh - 52px);
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: row;
   background-color: var(--wa-bg-stage);
@@ -500,18 +507,20 @@ body.in-call-mode .main-header {
   border-right: 1px solid var(--wa-border);
   display: flex;
   flex-direction: column;
-  z-index: 40;
+  z-index: 60;
   transition: transform var(--transition-normal);
+  padding-top: 48px; /* Offset for in-call see-through header */
 }
 
 .sidebar-header {
-  height: 56px;
+  height: 52px;
   background-color: var(--wa-bg-hover);
   border-bottom: 1px solid var(--wa-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
+  flex-shrink: 0;
 }
 
 .sidebar-user-row {
@@ -521,8 +530,8 @@ body.in-call-mode .main-header {
 }
 
 .sidebar-user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-full);
   background-color: var(--wa-green-badge);
   display: flex;
@@ -530,7 +539,7 @@ body.in-call-mode .main-header {
   justify-content: center;
   color: var(--wa-green);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .sidebar-user-info {
@@ -539,7 +548,7 @@ body.in-call-mode .main-header {
 }
 
 .sidebar-user-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--wa-text-primary);
   line-height: 1.2;
@@ -558,8 +567,8 @@ body.in-call-mode .main-header {
 }
 
 .btn-icon-soft {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -574,15 +583,16 @@ body.in-call-mode .main-header {
 }
 
 .btn-close-drawer {
-  display: none; /* Appears on mobile */
+  display: none; /* Appears on mobile/tablet */
 }
 
 /* Tabs */
 .sidebar-tabs {
-  height: 42px;
+  height: 40px;
   background-color: var(--wa-bg-surface);
   border-bottom: 1px solid var(--wa-border);
   display: flex;
+  flex-shrink: 0;
 }
 
 .tab-item {
@@ -641,11 +651,11 @@ body.in-call-mode .main-header {
   overflow: hidden;
 }
 
-/* WhatsApp In-Call Live Chat Thread (Authentic Light Background) */
+/* Chat Thread */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -668,7 +678,7 @@ body.in-call-mode .main-header {
   border: 1px solid rgba(0, 0, 0, 0.06);
   color: var(--wa-text-secondary);
   font-size: 11px;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -690,7 +700,7 @@ body.in-call-mode .main-header {
 
 .chat-system-msg {
   align-self: center;
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.9);
   color: var(--wa-text-secondary);
   font-size: 12px;
   padding: 4px 10px;
@@ -699,7 +709,6 @@ body.in-call-mode .main-header {
   text-align: center;
 }
 
-/* WhatsApp Bubbles (Outgoing #d9fdd3, Incoming #ffffff) */
 .chat-bubble {
   max-width: 82%;
   padding: 6px 9px 5px;
@@ -764,6 +773,7 @@ body.in-call-mode .main-header {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .chat-input-box {
@@ -778,7 +788,7 @@ body.in-call-mode .main-header {
   width: 100%;
   background: transparent;
   font-size: 14px;
-  padding: 9px 0;
+  padding: 8px 0;
   color: var(--wa-text-primary);
 }
 
@@ -787,8 +797,8 @@ body.in-call-mode .main-header {
 }
 
 .btn-send-wa {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
   background-color: var(--wa-green);
   display: flex;
@@ -808,14 +818,14 @@ body.in-call-mode .main-header {
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .room-summary-box {
   background-color: var(--wa-bg-hover);
   border: 1px solid var(--wa-border);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 12px;
   text-align: center;
 }
 
@@ -832,7 +842,7 @@ body.in-call-mode .main-header {
   font-weight: 700;
   color: var(--wa-green);
   letter-spacing: 2px;
-  margin: 4px 0 10px;
+  margin: 3px 0 8px;
 }
 
 .room-summary-actions {
@@ -899,8 +909,8 @@ body.in-call-mode .main-header {
 }
 
 .participant-avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
   background-color: #e9edef;
   color: var(--wa-green);
@@ -970,17 +980,14 @@ body.in-call-mode .main-header {
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
-  padding: 10px;
+  padding: 56px 12px 12px 12px; /* Top padding offsets see-through navbar */
 }
 
+/* Stage Mobile Top Overlay Bar */
 .stage-top-overlay {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  top: 56px;
+  left: 14px;
   z-index: 25;
   pointer-events: none;
 }
@@ -995,7 +1002,7 @@ body.in-call-mode .main-header {
   color: var(--wa-text-primary);
   font-size: 12px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 5px 11px;
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
 }
@@ -1005,27 +1012,6 @@ body.in-call-mode .main-header {
   height: 6px;
   background-color: var(--wa-green);
   border-radius: var(--radius-full);
-}
-
-.stage-status-badge {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(17, 27, 33, 0.7);
-  backdrop-filter: blur(8px);
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  color: #e9edef;
-  margin-left: auto;
-}
-
-.stage-live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background-color: #00a884;
 }
 
 /* Video Grid Layouts */
@@ -1095,7 +1081,7 @@ body.in-call-mode .main-header {
 
 .waiting-card {
   position: absolute;
-  max-width: 360px;
+  max-width: 340px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   border-radius: var(--radius-lg);
@@ -1104,7 +1090,7 @@ body.in-call-mode .main-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   box-shadow: var(--shadow-modal);
   z-index: 10;
 }
@@ -1208,8 +1194,8 @@ body.in-call-mode .main-header {
 }
 
 .avatar-circle {
-  width: 80px;
-  height: 80px;
+  width: 76px;
+  height: 76px;
   border-radius: var(--radius-full);
   background-color: #2a3942;
   display: flex;
@@ -1218,7 +1204,7 @@ body.in-call-mode .main-header {
 }
 
 .avatar-initial {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 700;
   color: #00a884;
 }
@@ -1280,9 +1266,9 @@ body.in-call-mode .main-header {
 .local-pip-box {
   position: absolute;
   bottom: 84px;
-  right: 20px;
-  width: 170px;
-  height: 110px;
+  right: 18px;
+  width: 160px;
+  height: 105px;
   border-radius: var(--radius-md);
   background-color: #111b21;
   overflow: hidden;
@@ -1309,8 +1295,8 @@ body.in-call-mode .main-header {
 }
 
 .local-pip-box.is-expanded {
-  width: 260px;
-  height: 165px;
+  width: 240px;
+  height: 155px;
 }
 
 .btn-pip-flip {
@@ -1329,11 +1315,11 @@ body.in-call-mode .main-header {
 }
 
 /* ==========================================================================
-   WhatsApp Call Controls Dock (Floating Bottom Bar)
+   WhatsApp Call Controls Dock (See-Through Floating Bar)
    ========================================================================== */
 .controls-dock-wrap {
   position: absolute;
-  bottom: 20px;
+  bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 35;
@@ -1343,24 +1329,24 @@ body.in-call-mode .main-header {
 
 .controls-pill {
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(17, 27, 33, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--wa-border);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-full);
   padding: 6px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   box-shadow: var(--shadow-dock);
 }
 
 .ctrl-btn {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
-  background-color: var(--wa-bg-hover);
-  color: var(--wa-text-primary);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e9edef;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1369,7 +1355,7 @@ body.in-call-mode .main-header {
 }
 
 .ctrl-btn:hover {
-  background-color: #e9edef;
+  background-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
 }
 
@@ -1379,19 +1365,20 @@ body.in-call-mode .main-header {
 }
 
 .ctrl-btn.active-state {
-  color: var(--wa-green);
+  color: #00a884;
 }
 
 .ctrl-btn.inactive-state {
-  background-color: #fee2e2;
+  background-color: rgba(234, 0, 56, 0.2);
   color: var(--wa-danger);
+  border: 1px solid rgba(234, 0, 56, 0.3);
 }
 
 .ctrl-btn.btn-hangup {
   background-color: var(--wa-danger);
   color: #ffffff;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
 }
 
 .ctrl-btn.btn-hangup:hover {
@@ -1433,7 +1420,7 @@ body.in-call-mode .main-header {
 
 .modal-box {
   width: 100%;
-  max-width: 380px;
+  max-width: 360px;
   background-color: var(--wa-bg-surface);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -1607,14 +1594,15 @@ body.in-call-mode .main-header {
 }
 
 /* ==========================================================================
-   Mobile Responsiveness (< 1024px & < 768px)
+   Mobile Responsiveness (< 1024px & < 768px & < 480px)
+   Navbar See-Through & Zero-Overflow Adaptations
    ========================================================================== */
 @media (max-width: 1024px) {
   .stage-btn-toggle {
     display: inline-flex;
   }
 
-  /* Left Sidebar collapses into drawer */
+  /* Left Sidebar collapses into slide-out drawer */
   .wa-sidebar {
     position: absolute;
     top: 0;
@@ -1623,7 +1611,7 @@ body.in-call-mode .main-header {
     width: 320px;
     box-shadow: var(--shadow-modal);
     transform: translateX(-100%);
-    z-index: 50;
+    z-index: 60;
   }
 
   .wa-sidebar.open {
@@ -1635,44 +1623,81 @@ body.in-call-mode .main-header {
   }
 
   .local-pip-box {
-    width: 130px;
-    height: 85px;
-    bottom: 78px;
+    width: 125px;
+    height: 82px;
+    bottom: 76px;
     right: 12px;
   }
 
   .local-pip-box.is-expanded {
-    width: 200px;
-    height: 130px;
+    width: 190px;
+    height: 125px;
   }
 }
 
 @media (max-width: 768px) {
-  .hero-top-strip {
-    height: 90px;
-  }
-
   .hero-card {
-    padding: 24px 20px;
+    padding: 24px 18px;
   }
 
   .wa-sidebar {
     width: 100%;
   }
 
+  /* See-through navbar mobile spacing */
+  body.in-call-mode .main-header {
+    height: 44px;
+    padding: 0 8px;
+  }
+
+  body.in-call-mode .call-top-bar {
+    gap: 4px;
+  }
+
+  .header-pill {
+    padding: 4px 7px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .header-pill strong {
+    font-size: 12px;
+  }
+
+  .header-timer {
+    padding: 4px 7px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .btn-header-invite {
+    padding: 4px 9px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .call-stage-area {
+    padding: 48px 6px 76px 6px;
+  }
+
+  .stage-top-overlay {
+    top: 50px;
+    left: 8px;
+  }
+
   .controls-pill {
-    padding: 6px 10px;
-    gap: 8px;
+    padding: 5px 8px;
+    gap: 6px;
   }
 
   .ctrl-btn {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
   }
 
   .ctrl-btn.btn-hangup {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
   }
 
   .ctrl-icon {
@@ -1681,9 +1706,30 @@ body.in-call-mode .main-header {
   }
 
   .local-pip-box {
-    width: 100px;
-    height: 70px;
-    bottom: 74px;
-    right: 10px;
+    width: 95px;
+    height: 65px;
+    bottom: 72px;
+    right: 8px;
+  }
+}
+
+/* Extra small mobile screens (iPhone SE / 320px - 400px) */
+@media (max-width: 420px) {
+  .badge-prefix {
+    display: none; /* Shows '# 580088' instead of 'Room: 580088' to guarantee zero overflow */
+  }
+
+  .invite-btn-text {
+    font-size: 11px;
+  }
+
+  .header-pill {
+    padding: 3px 6px;
+    font-size: 10.5px;
+  }
+
+  .header-timer {
+    padding: 3px 6px;
+    font-size: 10.5px;
   }
 }
