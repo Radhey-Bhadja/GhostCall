@@ -1,11 +1,3 @@
-/* ==========================================================================
-   GhostCall — High-Performance Pure Browser WebRTC Video Calling Engine
-   Full-Stack Architecture: Peer-to-Peer Mesh Networking via PeerJS
-   Zero Database • Zero Logins • End-to-End Browser Media Channels
-   UI / UX: WhatsApp Web Exact Visual Style, Layout & Micro-Interactions
-   ========================================================================== */
-
-// 1. Multi-provider STUN & TURN configuration for reliable NAT & firewall traversal
 const rtcConfiguration = {
   config: {
     iceServers: [
@@ -14,7 +6,6 @@ const rtcConfiguration = {
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' },
       { urls: 'stun:global.stun.twilio.com:3478' },
-      // OpenRelay public WebRTC TURN servers for symmetric NAT / cellular traversal
       {
         urls: 'turn:openrelay.metered.ca:80',
         username: 'openrelay',
@@ -35,7 +26,6 @@ const rtcConfiguration = {
   }
 };
 
-// 2. Application Reactive State Management
 const AppState = {
   currentRoomId: null,
   lastRoomId: null,
@@ -45,32 +35,24 @@ const AppState = {
   isRoomHost: false,
   isJoiningAsGuest: false,
   peer: null,
-
-  // Media Streams & Local Hardware State
   localStream: null,
   displayStream: null,
   isSharingScreen: false,
-  facingMode: 'user', // 'user' (front) or 'environment' (rear)
+  facingMode: 'user',
   isCameraMuted: false,
   isMicMuted: false,
-
-  // Mesh Connections & Peer Registries
-  peerCalls: new Map(),          // peerId -> MediaConnection
-  peerDataChannels: new Map(),   // peerId -> DataConnection
-  peerProfiles: new Map(),       // peerId -> { name, videoEnabled, audioEnabled }
-  activeParticipants: new Set(), // Set of active peer IDs
-
-  // Active Speaker & Audio Frequency Analysis
+  peerCalls: new Map(),
+  peerDataChannels: new Map(),
+  peerProfiles: new Map(),
+  activeParticipants: new Set(),
   audioContext: null,
-  audioAnalysers: new Map(),     // peerId ('local' or remote) -> { source, analyser }
+  audioAnalysers: new Map(),
   isAudioAnalysisRunning: false,
-
-  // UI & WhatsApp Navigation State
   callStartTime: null,
   callTimerInterval: null,
   unreadChatCount: 0,
-  isSidebarOpen: window.innerWidth > 1024, // Open by default on desktop
-  currentSidebarTab: 'chat',              // 'chat' or 'people'
+  isSidebarOpen: window.innerWidth > 1024,
+  currentSidebarTab: 'chat',
   isCallActive: false,
   suppressNavConfirm: false,
   joinedPeersNotified: new Set(),
@@ -79,16 +61,13 @@ const AppState = {
   _guestRetryCount: 0
 };
 
-// ── XSS-Safe HTML Escape (audit fix #1) ──────────────────────────────────
-// All peer-supplied strings MUST pass through this before innerHTML insertion
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
   const div = document.createElement('div');
   div.appendChild(document.createTextNode(String(str)));
   return div.innerHTML;
 }
 
-// 3. Cached DOM References
 const UI = {
   body: document.body,
   heroView: document.getElementById('hero-view'),
@@ -98,8 +77,6 @@ const UI = {
   waitingScreen: document.getElementById('waiting-screen'),
   waitingLocalPreview: document.getElementById('waiting-local-preview'),
   waitingCodeText: document.getElementById('waiting-code-text'),
-  
-  // Local Picture-in-Picture
   localVideoBox: document.getElementById('local-video-box'),
   localVideo: document.getElementById('local-video'),
   localAvatar: document.getElementById('local-avatar'),
@@ -109,8 +86,6 @@ const UI = {
   localMicMini: document.getElementById('local-mic-mini'),
   localMicSlash: document.getElementById('local-mic-slash'),
   btnCameraFlip: document.getElementById('btn-camera-flip'),
-
-  // Global Header
   appHeader: document.getElementById('app-header'),
   roomInfoPill: document.getElementById('header-room-pill'),
   participantsPill: document.getElementById('header-participants-pill'),
@@ -119,8 +94,6 @@ const UI = {
   btnHeaderShare: document.getElementById('btn-header-share'),
   headerCallTimer: document.getElementById('header-call-timer'),
   callDurationText: document.getElementById('call-duration-text'),
-
-  // WhatsApp Left Sidebar
   callSidebar: document.getElementById('call-sidebar'),
   sidebarUserInitial: document.getElementById('sidebar-user-initial'),
   sidebarUserName: document.getElementById('sidebar-user-name'),
@@ -141,9 +114,6 @@ const UI = {
   participantSelfCam: document.getElementById('participant-self-cam'),
   btnToggleSidebar: document.getElementById('btn-toggle-sidebar'),
   stageUnreadDot: document.getElementById('stage-unread-dot'),
-  stageStatusText: document.getElementById('stage-status-text'),
-
-  // Floating Controls Dock
   controlsDock: document.getElementById('controls-dock'),
   btnMic: document.getElementById('btn-mic'),
   btnCam: document.getElementById('btn-cam'),
@@ -153,18 +123,13 @@ const UI = {
   btnFullscreen: document.getElementById('btn-fullscreen'),
   iconFsEnter: document.getElementById('icon-fs-enter'),
   iconFsExit: document.getElementById('icon-fs-exit'),
-  labelFs: document.getElementById('label-fs'),
   iconMicOn: document.getElementById('icon-mic-on'),
   iconMicOff: document.getElementById('icon-mic-off'),
   iconCamOn: document.getElementById('icon-cam-on'),
   iconCamOff: document.getElementById('icon-cam-off'),
-
-  // Chat Form & List
   chatMessagesList: document.getElementById('chat-messages-list'),
   chatForm: document.getElementById('chat-form'),
   chatInput: document.getElementById('chat-input'),
-
-  // Banners & Modals
   alertBanner: document.getElementById('alert-banner'),
   alertText: document.getElementById('alert-text'),
   toastMsg: document.getElementById('toast-msg'),
@@ -175,8 +140,6 @@ const UI = {
   modalRoomErrorDesc: document.getElementById('modal-room-error-desc'),
   shareModalCode: document.getElementById('share-modal-code'),
   shareModalLinkInput: document.getElementById('share-modal-link-input'),
-
-  // Landing Inputs
   nameInput: document.getElementById('input-display-name'),
   heroAvatarPreview: document.getElementById('hero-avatar-preview'),
   roomInput: document.getElementById('input-room-code'),
@@ -185,7 +148,6 @@ const UI = {
   btnJoinRoom: document.getElementById('btn-join-room')
 };
 
-// 4. Initialization & Lifecycle
 window.addEventListener('DOMContentLoaded', () => {
   initUserPreferences();
   initDragPip();
@@ -195,10 +157,8 @@ window.addEventListener('DOMContentLoaded', () => {
   checkUrlHashOnLoad();
 });
 
-// Clean up WebRTC mesh immediately on tab close or page reload
 window.addEventListener('beforeunload', () => {
   if (AppState.currentRoomId) {
-    // Notify connected peers over data channels before tab unload
     broadcastMeshMessage({
       type: 'PEER_LEFT',
       peerId: AppState.myPeerId,
@@ -216,7 +176,6 @@ window.addEventListener('pagehide', () => {
   }
 });
 
-// Watch URL Hash navigation
 window.addEventListener('hashchange', () => {
   if (AppState.suppressNavConfirm) return;
   const hash = window.location.hash.replace('#', '').trim();
@@ -254,7 +213,7 @@ function initUserPreferences() {
         return;
       }
       const controlKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-      if (controlKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+      if (controlKeys.includes(e.key) || e.key === 'Unidentified' || e.key === 'Process' || e.ctrlKey || e.metaKey) return;
       if (!/^[0-9]$/.test(e.key)) e.preventDefault();
       const hasSelection = UI.roomInput.selectionStart !== UI.roomInput.selectionEnd;
       if (UI.roomInput.value.length >= 6 && !hasSelection) e.preventDefault();
@@ -269,18 +228,15 @@ function initUserPreferences() {
     UI.roomInput.addEventListener('paste', (e) => {
       e.preventDefault();
       const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
-      const digits = text.replace(/\D/g, '').slice(0, 6);
-      UI.roomInput.value = digits;
+      UI.roomInput.value = text.replace(/\D/g, '').slice(0, 6);
       clearRoomInputError();
     });
   }
 
-  // Detect mobile device for camera flip button
   if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
     if (UI.btnCameraFlip) UI.btnCameraFlip.style.display = 'flex';
   }
 
-  // Hide screen share on browsers that don't support getDisplayMedia (iOS Safari, most mobile)
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
     if (UI.btnScreen) UI.btnScreen.style.display = 'none';
   }
@@ -288,19 +244,19 @@ function initUserPreferences() {
 
 function updateHeroAvatarPreview(name) {
   if (!UI.heroAvatarPreview) return;
-  const initial = name ? name.charAt(0).toUpperCase() : '👤';
-  UI.heroAvatarPreview.textContent = initial;
+  UI.heroAvatarPreview.textContent = name ? name.charAt(0).toUpperCase() : '👤';
 }
 
 function updateLocalDisplayName(name) {
   const displayName = name || 'You';
+  const initial = displayName.charAt(0).toUpperCase();
   if (UI.localTagName) UI.localTagName.textContent = displayName;
   if (UI.localAvatarName) UI.localAvatarName.textContent = displayName;
-  if (UI.localAvatarInitial) UI.localAvatarInitial.textContent = displayName.charAt(0).toUpperCase();
+  if (UI.localAvatarInitial) UI.localAvatarInitial.textContent = initial;
   if (UI.sidebarUserName) UI.sidebarUserName.textContent = displayName;
-  if (UI.sidebarUserInitial) UI.sidebarUserInitial.textContent = displayName.charAt(0).toUpperCase();
+  if (UI.sidebarUserInitial) UI.sidebarUserInitial.textContent = initial;
   if (UI.participantSelfName) UI.participantSelfName.textContent = displayName;
-  if (UI.participantSelfInitial) UI.participantSelfInitial.textContent = displayName.charAt(0).toUpperCase();
+  if (UI.participantSelfInitial) UI.participantSelfInitial.textContent = initial;
 }
 
 function checkUrlHashOnLoad() {
@@ -315,12 +271,8 @@ function checkUrlHashOnLoad() {
   showHeroView();
 }
 
-/* ==========================================================================
-   Room Creation & Zero-Login Flow
-   ========================================================================== */
 function createNewRoom() {
   unlockAudio();
-  // Generate user-friendly 6-digit room code
   const randomRoomId = String(Math.floor(100000 + Math.random() * 900000));
   startVideoCallRoom(randomRoomId, false);
 }
@@ -335,11 +287,9 @@ function joinExistingRoom() {
     return;
   }
 
-  // Strip room URL schemes or hashes (e.g., "#room-580088", "room-580088")
   if (val.includes('#room-')) val = val.split('#room-')[1];
   else if (val.includes('#')) val = val.split('#')[1];
 
-  // Sanitize: strip spaces, dashes, symbols, and non-digits
   val = val.replace(/[\s\-_]/g, '').replace(/\D/g, '').slice(0, 6);
 
   if (val.length !== 6) {
@@ -372,9 +322,6 @@ function clearRoomInputError() {
   }
 }
 
-/* ==========================================================================
-   Room Initialization & Media Setup
-   ========================================================================== */
 async function startVideoCallRoom(roomId, isGuest = false) {
   unlockAudio();
   AppState.currentRoomId = roomId;
@@ -402,13 +349,8 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   showCallView();
   startCallTimer();
 
-  // Step 1: Initialize Local Media Stream (Camera & Mic with progressive fallback)
   await initLocalMediaStream();
-
-  // Step 2: Initialize WebRTC PeerJS Mesh
   initPeerMesh();
-
-  // Step 3: Start Active Speaker detection & bind local analyser
   startAudioAnalysis();
   if (AppState.localStream && AppState.audioContext) {
     setupAudioAnalyser('local', AppState.localStream);
@@ -416,7 +358,6 @@ async function startVideoCallRoom(roomId, isGuest = false) {
 }
 
 async function initLocalMediaStream() {
-  // Studio-quality video and crystal-clear audio constraints
   const primaryConstraints = {
     video: {
       facingMode: AppState.facingMode || 'user',
@@ -437,7 +378,6 @@ async function initLocalMediaStream() {
     attachLocalStream(stream);
     dismissAlert();
   } catch (err) {
-    console.warn('Primary 1080p constraints failed, trying 720p HD fallback:', err);
     try {
       const fallbackStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -455,23 +395,18 @@ async function initLocalMediaStream() {
       attachLocalStream(fallbackStream);
       dismissAlert();
     } catch (fallbackErr) {
-      console.warn('Fallback media failed, trying audio-first or video-only:', fallbackErr);
       try {
-        // Fallback 1: Desktop without webcam or camera permission denied -> voice call
         const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         attachLocalStream(audioOnly);
         showAlert('No camera found or permitted. Joining in audio-only mode.', false);
       } catch (audioErr) {
         try {
-          // Fallback 2: Camera without mic or mic permission denied -> video-only
           const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           attachLocalStream(videoOnly);
           showAlert('No microphone found or permitted. Joining in video-only mode.', false);
         } catch (videoErr) {
-          // Hardware completely unavailable or blocked: create safe dummy fallback stream
           const dummyStream = createFallbackMediaStream();
           attachLocalStream(dummyStream);
-
           if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
             showAlert('Camera & Microphone access was blocked. Tap the lock icon in your browser address bar to allow.', true);
           } else if (fallbackErr.name === 'NotFoundError') {
@@ -492,16 +427,15 @@ function attachLocalStream(stream) {
     UI.localVideo.playsInline = true;
     UI.localVideo.setAttribute('playsinline', '');
     UI.localVideo.srcObject = stream;
-    UI.localVideo.play().catch(e => console.warn('Local video play note:', e));
+    UI.localVideo.play().catch(() => {});
   }
 
-  // Bind to full-screen waiting banner preview
   if (UI.waitingLocalPreview) {
     UI.waitingLocalPreview.muted = true;
     UI.waitingLocalPreview.playsInline = true;
     UI.waitingLocalPreview.setAttribute('playsinline', '');
     UI.waitingLocalPreview.srcObject = stream;
-    UI.waitingLocalPreview.play().catch(e => console.warn('Waiting preview play note:', e));
+    UI.waitingLocalPreview.play().catch(() => {});
   }
 
   updateStageWaitingVisibility();
@@ -513,23 +447,30 @@ function updateStageWaitingVisibility() {
   if (remoteCount === 0) {
     if (UI.waitingScreen) UI.waitingScreen.style.display = 'flex';
     if (UI.waitingLocalPreview && AppState.localStream) {
-      if (UI.waitingLocalPreview.srcObject !== AppState.localStream) {
-        UI.waitingLocalPreview.srcObject = AppState.localStream;
+      UI.waitingLocalPreview.style.display = AppState.isCameraMuted ? 'none' : 'block';
+      if (!AppState.isCameraMuted) {
+        if (UI.waitingLocalPreview.srcObject !== AppState.localStream) {
+          UI.waitingLocalPreview.srcObject = AppState.localStream;
+        }
+        UI.waitingLocalPreview.play().catch(() => {});
       }
-      UI.waitingLocalPreview.play().catch(() => {});
     }
     if (UI.localVideoBox) UI.localVideoBox.style.display = 'none';
-    if (UI.stageStatusText) UI.stageStatusText.textContent = 'Waiting for peers...';
   } else {
     if (UI.waitingScreen) UI.waitingScreen.style.display = 'none';
     if (UI.localVideoBox) UI.localVideoBox.style.display = 'block';
-    if (UI.stageStatusText) UI.stageStatusText.textContent = `Connected (${remoteCount + 1} in room)`;
   }
 }
 
-// Fallback dummy stream with black canvas and silent audio track for zero-crash WebRTC answers
 let fallbackAudioCtx = null;
+let fallbackOscillator = null;
+let fallbackDummyStream = null;
+
 function createFallbackMediaStream() {
+  if (fallbackDummyStream && fallbackDummyStream.active) {
+    return fallbackDummyStream;
+  }
+
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   let dummyAudio;
   if (AudioContextClass) {
@@ -537,10 +478,13 @@ function createFallbackMediaStream() {
       if (!fallbackAudioCtx || fallbackAudioCtx.state === 'closed') {
         fallbackAudioCtx = new AudioContextClass();
       }
-      const osc = fallbackAudioCtx.createOscillator();
+      if (fallbackOscillator) {
+        try { fallbackOscillator.stop(); fallbackOscillator.disconnect(); } catch (e) {}
+      }
       const destNode = fallbackAudioCtx.createMediaStreamDestination();
-      osc.connect(destNode);
-      osc.start();
+      fallbackOscillator = fallbackAudioCtx.createOscillator();
+      fallbackOscillator.connect(destNode);
+      fallbackOscillator.start();
       dummyAudio = destNode.stream.getAudioTracks()[0];
       if (dummyAudio) dummyAudio.enabled = false;
     } catch (e) {}
@@ -559,12 +503,10 @@ function createFallbackMediaStream() {
   if (dummyAudio) tracks.push(dummyAudio);
   if (dummyVideo) tracks.push(dummyVideo);
 
-  return new MediaStream(tracks);
+  fallbackDummyStream = new MediaStream(tracks);
+  return fallbackDummyStream;
 }
 
-/* ==========================================================================
-   WebRTC Mesh Networking Logic (PeerJS & Resilient Mesh)
-   ========================================================================== */
 function initPeerMesh() {
   const hostPeerId = `ghostcall-${AppState.currentRoomId}-host`;
 
@@ -573,14 +515,12 @@ function initPeerMesh() {
     return;
   }
 
-  // Attempt to register as room coordinator/host
   AppState.peer = new Peer(hostPeerId, rtcConfiguration);
 
   AppState.peer.on('open', (id) => {
     AppState.isRoomHost = true;
     AppState.myPeerId = id;
     AppState.activeParticipants.add(id);
-    console.log('✅ Registered as Room Host:', id);
     updateParticipantsDisplay();
     bindPeerListeners();
     notifyUserEvent(`You entered room #${AppState.currentRoomId}`);
@@ -588,12 +528,10 @@ function initPeerMesh() {
 
   AppState.peer.on('error', (err) => {
     if (err.type === 'unavailable-id') {
-      console.log('ℹ️ Host exists in room. Joining as guest participant...');
       joinAsMeshGuest(hostPeerId);
     } else {
-      console.error('Peer connection error:', err);
       if (err.type !== 'peer-unavailable') {
-        showAlert('Connection notice: ' + (err.message || err.type), false);
+        showAlert('Connection note: ' + (err.message || err.type), false);
       }
     }
   });
@@ -609,18 +547,15 @@ function joinAsMeshGuest(hostPeerId) {
     AppState._guestRetryCount = 0;
     AppState.myPeerId = id;
     AppState.activeParticipants.add(id);
-    console.log('✅ Registered as Guest Participant:', id);
     updateParticipantsDisplay();
     bindPeerListeners();
     notifyUserEvent(`You entered room #${AppState.currentRoomId}`);
 
-    // Establish full mesh: connect data channel and media call to host
     connectDataChannelToPeer(hostPeerId);
     establishMediaCall(hostPeerId);
   });
 
   AppState.peer.on('error', (err) => {
-    console.warn('Guest peer error event:', err);
     if (err.type === 'unavailable-id') {
       if (!AppState._guestRetryCount) AppState._guestRetryCount = 0;
       AppState._guestRetryCount++;
@@ -629,10 +564,16 @@ function joinAsMeshGuest(hostPeerId) {
         return;
       }
       AppState.sessionUid = Math.random().toString(36).substring(2, 8);
-      setTimeout(() => joinAsMeshGuest(hostPeerId), 350 * AppState._guestRetryCount);
+      setTimeout(() => joinAsMeshGuest(hostPeerId), 300 * AppState._guestRetryCount);
     } else if (err.type === 'peer-unavailable') {
-      // If host is temporarily unavailable, retry once or stay in room awaiting peer rendezvous
-      console.log('Host peer currently unavailable. Awaiting incoming connections...');
+      if (AppState.peer) {
+        try { AppState.peer.destroy(); } catch (e) {}
+        AppState.peer = null;
+      }
+      AppState.isJoiningAsGuest = false;
+      setTimeout(() => {
+        if (AppState.isCallActive) initPeerMesh();
+      }, 300);
     }
   });
 }
@@ -640,10 +581,7 @@ function joinAsMeshGuest(hostPeerId) {
 function bindPeerListeners() {
   if (!AppState.peer) return;
 
-  // Incoming media calls
   AppState.peer.on('call', (incomingCall) => {
-    console.log('📞 Incoming media call from:', incomingCall.peer);
-
     const streamToSend = AppState.isSharingScreen && AppState.displayStream 
       ? AppState.displayStream 
       : (AppState.localStream || createFallbackMediaStream());
@@ -659,8 +597,7 @@ function bindPeerListeners() {
       removeRemoteVideoTile(incomingCall.peer);
     });
 
-    incomingCall.on('error', (err) => {
-      console.warn('Call error with peer:', incomingCall.peer, err);
+    incomingCall.on('error', () => {
       removeRemoteVideoTile(incomingCall.peer);
     });
 
@@ -669,7 +606,6 @@ function bindPeerListeners() {
     updateParticipantsDisplay();
   });
 
-  // Incoming data connections
   AppState.peer.on('connection', (conn) => {
     setupDataConnection(conn);
   });
@@ -680,7 +616,6 @@ function setupDataConnection(conn) {
     AppState.peerDataChannels.set(conn.peer, conn);
     AppState.activeParticipants.add(conn.peer);
 
-    // Send our profile to the newly connected peer
     conn.send({
       type: 'PROFILE_UPDATE',
       peerId: AppState.myPeerId,
@@ -689,7 +624,6 @@ function setupDataConnection(conn) {
       audioEnabled: !AppState.isMicMuted
     });
 
-    // If host, send room members list to the newcomer
     if (AppState.isRoomHost) {
       conn.send({
         type: 'ROOM_MEMBERS',
@@ -697,7 +631,6 @@ function setupDataConnection(conn) {
         profiles: Object.fromEntries(AppState.peerProfiles)
       });
 
-      // Broadcast new participant arrival to all other peers
       broadcastMeshMessage({
         type: 'PEER_JOINED',
         newPeerId: conn.peer
@@ -711,8 +644,8 @@ function setupDataConnection(conn) {
     handleMeshSignaling(data, conn.peer);
   });
 
-  conn.on('error', (err) => {
-    console.warn('Data channel note:', conn.peer, err);
+  conn.on('error', () => {
+    if (!conn.open) AppState.peerDataChannels.delete(conn.peer);
   });
 
   conn.on('close', () => {
@@ -722,13 +655,15 @@ function setupDataConnection(conn) {
 
 function connectDataChannelToPeer(targetPeerId) {
   if (AppState.peerDataChannels.has(targetPeerId)) return;
+  if (!AppState.peer || AppState.peer.destroyed) return;
   const conn = AppState.peer.connect(targetPeerId, { reliable: true });
+  AppState.peerDataChannels.set(targetPeerId, conn);
   setupDataConnection(conn);
 }
 
 function handlePeerDisconnect(peerId) {
   const profile = AppState.peerProfiles.get(peerId);
-  const friendName = profile?.name || 'A friend';
+  const friendName = (profile && typeof profile.name === 'string') ? profile.name : 'A friend';
 
   AppState.peerDataChannels.delete(peerId);
   AppState.peerProfiles.delete(peerId);
@@ -745,9 +680,42 @@ function handlePeerDisconnect(peerId) {
       peerId: peerId,
       name: friendName
     });
+  } else if (peerId.endsWith('-host')) {
+    const remainingPeers = Array.from(AppState.activeParticipants).filter(id => id !== peerId && !id.endsWith('-host'));
+    remainingPeers.sort();
+    if (remainingPeers[0] === AppState.myPeerId) {
+      promoteGuestToHost();
+    }
   }
 
   removeRemoteVideoTile(peerId);
+}
+
+function promoteGuestToHost() {
+  if (AppState.isRoomHost || !AppState.isCallActive) return;
+  const hostPeerId = `ghostcall-${AppState.currentRoomId}-host`;
+  const promoPeer = new Peer(hostPeerId, rtcConfiguration);
+
+  promoPeer.on('open', (id) => {
+    AppState.isRoomHost = true;
+    if (AppState.peer && AppState.peer !== promoPeer) {
+      try { AppState.peer.destroy(); } catch (e) {}
+    }
+    AppState.peer = promoPeer;
+    AppState.myPeerId = id;
+    AppState.activeParticipants.add(id);
+    bindPeerListeners();
+    AppState.peerCalls.forEach((_, pid) => {
+      if (pid !== id && !pid.endsWith('-host')) {
+        connectDataChannelToPeer(pid);
+        establishMediaCall(pid);
+      }
+    });
+  });
+
+  promoPeer.on('error', () => {
+    try { promoPeer.destroy(); } catch (err) {}
+  });
 }
 
 function handleMeshSignaling(data, fromPeerId) {
@@ -757,7 +725,14 @@ function handleMeshSignaling(data, fromPeerId) {
     case 'ROOM_MEMBERS':
       if (data.profiles) {
         Object.entries(data.profiles).forEach(([pid, prof]) => {
-          AppState.peerProfiles.set(pid, prof);
+          if (prof && typeof prof === 'object') {
+            const raw = typeof prof.name === 'string' ? prof.name.trim().slice(0, 24) : 'Friend';
+            AppState.peerProfiles.set(pid, {
+              name: raw || 'Friend',
+              videoEnabled: prof.videoEnabled !== false,
+              audioEnabled: prof.audioEnabled !== false
+            });
+          }
         });
       }
 
@@ -765,7 +740,6 @@ function handleMeshSignaling(data, fromPeerId) {
         data.peers.forEach((peerId) => {
           if (peerId !== AppState.myPeerId) {
             AppState.activeParticipants.add(peerId);
-            // Glare-free mesh: Only initiate call and data connection if myPeerId is lexicographically greater
             if (AppState.myPeerId > peerId) {
               if (!AppState.peerDataChannels.has(peerId)) {
                 connectDataChannelToPeer(peerId);
@@ -797,7 +771,8 @@ function handleMeshSignaling(data, fromPeerId) {
 
     case 'PROFILE_UPDATE':
       if (data.peerId) {
-        const friendName = data.name || 'Friend';
+        const rawName = typeof data.name === 'string' ? data.name.trim() : '';
+        const friendName = rawName ? rawName.slice(0, 24) : 'Friend';
         const isNewPeer = !AppState.joinedPeersNotified.has(data.peerId);
         AppState.peerProfiles.set(data.peerId, {
           name: friendName,
@@ -817,7 +792,8 @@ function handleMeshSignaling(data, fromPeerId) {
     case 'PEER_LEFT':
       if (data.peerId) {
         const profile = AppState.peerProfiles.get(data.peerId);
-        const friendName = data.name || profile?.name || 'A friend';
+        const raw = (profile && typeof profile.name === 'string') ? profile.name : 'A friend';
+        const friendName = typeof data.name === 'string' ? data.name.trim().slice(0, 24) : raw;
         if (AppState.joinedPeersNotified && AppState.joinedPeersNotified.has(data.peerId)) {
           AppState.joinedPeersNotified.delete(data.peerId);
           notifyUserEvent(`${friendName} left the room`);
@@ -826,9 +802,16 @@ function handleMeshSignaling(data, fromPeerId) {
       }
       break;
 
-    case 'CHAT_MESSAGE':
-      appendChatMessage(data.senderName, data.text, false, data.time);
+    case 'CHAT_MESSAGE': {
+      const rawSender = typeof data.senderName === 'string' ? data.senderName.trim() : '';
+      const sender = rawSender ? rawSender.slice(0, 24) : 'Friend';
+      const text = typeof data.text === 'string' ? data.text.trim().slice(0, 300) : '';
+      const time = typeof data.time === 'string' && data.time.length <= 12
+        ? data.time
+        : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (text) appendChatMessage(sender, text, false, time);
       break;
+    }
   }
 }
 
@@ -837,9 +820,7 @@ function broadcastMeshMessage(payload, excludePeerId = null) {
     if (peerId !== excludePeerId && conn && conn.open) {
       try {
         conn.send(payload);
-      } catch (e) {
-        console.warn('Broadcast error to:', peerId, e);
-      }
+      } catch (e) {}
     }
   });
 }
@@ -875,8 +856,7 @@ function establishMediaCall(remotePeerId) {
     removeRemoteVideoTile(remotePeerId);
   });
 
-  call.on('error', (err) => {
-    console.warn('Call error with peer:', remotePeerId, err);
+  call.on('error', () => {
     removeRemoteVideoTile(remotePeerId);
   });
 
@@ -886,10 +866,6 @@ function establishMediaCall(remotePeerId) {
   dynamicallyAdjustBitrates();
 }
 
-/**
- * Safe, Studio-Grade WebRTC SDP Optimization
- * Forces Opus to 48kHz, stereo, in-band forward error correction, 128 kbps
- */
 function optimizeWebRtcSdp(sdp) {
   if (!sdp || typeof sdp !== 'string') return sdp;
 
@@ -912,9 +888,7 @@ function optimizeWebRtcSdp(sdp) {
         sdp = sdp.replace(opusMatch[0], `${opusMatch[0]}\r\na=fmtp:${pt} ${studioAudioParams}`);
       }
     }
-  } catch (err) {
-    console.warn('SDP tuning note:', err);
-  }
+  } catch (err) {}
 
   return sdp;
 }
@@ -928,7 +902,6 @@ function configureCallParameters(call) {
       tunePeerSenders(pc);
     }
     if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-      console.warn(`ICE state notice with ${call.peer}:`, pc.iceConnectionState);
       if (typeof pc.restartIce === 'function') {
         try {
           pc.restartIce();
@@ -949,7 +922,7 @@ function tunePeerSenders(pc) {
   if (!pc || !pc.getSenders) return;
 
   const total = AppState.peerCalls.size + 1;
-  let maxVideoBitrate = total >= 4 ? 800000 : 2500000;
+  const maxVideoBitrate = total >= 4 ? 800000 : 2500000;
 
   pc.getSenders().forEach((sender) => {
     if (sender.track && sender.track.kind === 'video') {
@@ -971,9 +944,6 @@ function dynamicallyAdjustBitrates() {
   });
 }
 
-/* ==========================================================================
-   DOM Video Grid Rendering & Remote Tiles
-   ========================================================================== */
 function renderRemoteVideoTile(peerId, stream) {
   let card = document.getElementById(`card-${peerId}`);
   let videoEl;
@@ -991,10 +961,10 @@ function renderRemoteVideoTile(peerId, stream) {
     videoEl.setAttribute('playsinline', '');
     videoEl.setAttribute('webkit-playsinline', '');
 
-    // Avatar placeholder for when remote video is off
-    const profile = AppState.peerProfiles.get(peerId) || { name: 'Friend' };
-    const safeName = escapeHtml(profile.name || 'Friend');
-    const safeInitial = escapeHtml((profile.name || 'Friend').charAt(0).toUpperCase());
+    const profile = AppState.peerProfiles.get(peerId);
+    const rawName = (profile && typeof profile.name === 'string') ? profile.name.trim() : 'Friend';
+    const safeName = escapeHtml(rawName || 'Friend');
+    const safeInitial = escapeHtml((rawName || 'F').charAt(0).toUpperCase());
 
     avatarEl = document.createElement('div');
     avatarEl.className = 'avatar-placeholder';
@@ -1007,14 +977,10 @@ function renderRemoteVideoTile(peerId, stream) {
       <span class="avatar-name">${safeName}</span>
     `;
 
-    // Bottom name tag
     const nameTag = document.createElement('div');
     nameTag.className = 'tile-name-tag';
-    nameTag.innerHTML = `
-      <span class="tag-name-text">${safeName}</span>
-    `;
+    nameTag.innerHTML = `<span class="tag-name-text">${safeName}</span>`;
 
-    // Muted mic slash badge
     const micSlash = document.createElement('div');
     micSlash.className = 'tile-mic-slash';
     micSlash.id = `mic-slash-${peerId}`;
@@ -1036,17 +1002,14 @@ function renderRemoteVideoTile(peerId, stream) {
     avatarEl = card.querySelector('.avatar-placeholder');
   }
 
-  // Preserve reference to the remote stream
   card._originalStream = stream;
 
-  // Safe playback handling with unmuted audio guarantee
   if (videoEl && videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
     videoEl.muted = false;
-    videoEl.play().catch((err) => {
-      console.warn('Autoplay unmuted blocked by policy, fallback to muted until user tap:', err);
+    videoEl.play().catch(() => {
       videoEl.muted = true;
-      videoEl.play().catch(e => console.warn('Muted remote play note:', e));
+      videoEl.play().catch(() => {});
       const unmuteOnInteraction = () => {
         if (videoEl) {
           videoEl.muted = false;
@@ -1058,7 +1021,6 @@ function renderRemoteVideoTile(peerId, stream) {
     });
   }
 
-  // Track state listeners
   const videoTrack = stream.getVideoTracks()[0];
   if (videoTrack) {
     videoTrack.onmute = () => {
@@ -1081,14 +1043,15 @@ function updateRemoteTileProfile(peerId) {
   const profile = AppState.peerProfiles.get(peerId);
   if (!card || !profile) return;
 
+  const rawName = typeof profile.name === 'string' ? profile.name : 'Friend';
   const nameEl = card.querySelector('.tag-name-text');
-  if (nameEl) nameEl.textContent = profile.name;
+  if (nameEl) nameEl.textContent = rawName;
 
   const avatarName = card.querySelector('.avatar-name');
-  if (avatarName) avatarName.textContent = profile.name;
+  if (avatarName) avatarName.textContent = rawName;
 
   const avatarInitial = card.querySelector('.avatar-initial');
-  if (avatarInitial) avatarInitial.textContent = profile.name.charAt(0).toUpperCase();
+  if (avatarInitial) avatarInitial.textContent = rawName.charAt(0).toUpperCase();
 
   const avatarEl = card.querySelector('.avatar-placeholder');
   if (avatarEl && profile.videoEnabled !== undefined) {
@@ -1102,7 +1065,6 @@ function updateRemoteTileProfile(peerId) {
 }
 
 function removeRemoteVideoTile(peerId) {
-  // Prevent redundant cleanup cycles if already removed
   const card = document.getElementById(`card-${peerId}`);
   if (!card && !AppState.peerCalls.has(peerId) && !AppState.peerDataChannels.has(peerId)) return;
 
@@ -1120,7 +1082,6 @@ function removeRemoteVideoTile(peerId) {
     AppState.peerDataChannels.delete(peerId);
   }
 
-  // Clean up audio analyser nodes to avoid memory leaks
   if (AppState.audioAnalysers.has(peerId)) {
     const entry = AppState.audioAnalysers.get(peerId);
     try {
@@ -1168,13 +1129,11 @@ function updateParticipantsDisplay() {
 function renderSidebarParticipantsList() {
   if (!UI.participantsListItems) return;
 
-  // Preserve the local self row
   const existingRows = UI.participantsListItems.querySelectorAll('.participant-item:not(.is-self)');
   existingRows.forEach(r => r.remove());
 
   updateLocalParticipantRow();
 
-  // Render each remote peer
   AppState.peerCalls.forEach((_, peerId) => {
     const profile = AppState.peerProfiles.get(peerId) || { name: 'Friend', videoEnabled: true, audioEnabled: true };
     const row = document.createElement('div');
@@ -1184,8 +1143,9 @@ function renderSidebarParticipantsList() {
     const isSpeaking = speakingStateCache.get(peerId) || false;
     if (isSpeaking) row.classList.add('is-speaking');
 
-    const safeName = escapeHtml(profile.name || 'Friend');
-    const safeInitial = escapeHtml((profile.name || 'Friend').charAt(0).toUpperCase());
+    const rawName = (profile && typeof profile.name === 'string') ? profile.name.trim() : 'Friend';
+    const safeName = escapeHtml(rawName || 'Friend');
+    const safeInitial = escapeHtml((rawName || 'F').charAt(0).toUpperCase());
 
     row.innerHTML = `
       <div class="participant-avatar">
@@ -1221,9 +1181,6 @@ function updateLocalParticipantRow() {
   }
 }
 
-/* ==========================================================================
-   Active Speaker Detection (AudioContext Analysis)
-   ========================================================================== */
 let audioAnalysisBuffer = null;
 let lastAudioAnalysisTime = 0;
 const speakingStateCache = new Map();
@@ -1241,9 +1198,7 @@ function startAudioAnalysis() {
     }
     AppState.isAudioAnalysisRunning = true;
     requestAnimationFrame(analyzeAudioFrame);
-  } catch (e) {
-    console.warn('AudioContext init warning:', e);
-  }
+  } catch (e) {}
 }
 
 function stopAudioAnalysis() {
@@ -1268,6 +1223,15 @@ function setupAudioAnalyser(id, stream) {
   const audioTrack = stream.getAudioTracks()[0];
   if (!audioTrack) return;
 
+  if (AppState.audioAnalysers.has(id)) {
+    const prev = AppState.audioAnalysers.get(id);
+    try {
+      if (prev.source) prev.source.disconnect();
+      if (prev.analyser) prev.analyser.disconnect();
+    } catch (e) {}
+    AppState.audioAnalysers.delete(id);
+  }
+
   try {
     const source = AppState.audioContext.createMediaStreamSource(stream);
     const analyser = AppState.audioContext.createAnalyser();
@@ -1275,15 +1239,12 @@ function setupAudioAnalyser(id, stream) {
     analyser.smoothingTimeConstant = 0.5;
     source.connect(analyser);
     AppState.audioAnalysers.set(id, { source, analyser, stream });
-  } catch (e) {
-    console.warn('Could not setup analyser for', id, e);
-  }
+  } catch (e) {}
 }
 
 function analyzeAudioFrame(now) {
   if (!AppState.isAudioAnalysisRunning) return;
 
-  // Throttle analysis to ~10Hz (every 100ms) to ensure smooth 60fps video
   if (!now || now - lastAudioAnalysisTime >= 100) {
     lastAudioAnalysisTime = now || performance.now();
 
@@ -1326,9 +1287,6 @@ function analyzeAudioFrame(now) {
   requestAnimationFrame(analyzeAudioFrame);
 }
 
-/* ==========================================================================
-   Media Control Handlers (Mic, Cam, Screen Share, Camera Flip)
-   ========================================================================== */
 function toggleMicrophone() {
   if (!AppState.localStream) return;
   const audioTracks = AppState.localStream.getAudioTracks();
@@ -1373,7 +1331,6 @@ async function toggleCamera() {
 
     let videoTracks = AppState.localStream.getVideoTracks();
 
-    // If no track or track ended, re-acquire camera
     if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
       try {
         const newStream = await navigator.mediaDevices.getUserMedia({
@@ -1385,18 +1342,15 @@ async function toggleCamera() {
           AppState.localStream.addTrack(newTrack);
           if (UI.localVideo) UI.localVideo.srcObject = AppState.localStream;
           
-          // Replace video track on all peer connections
           AppState.peerCalls.forEach((call) => {
             try {
               const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-              if (sender) sender.replaceTrack(newTrack);
+              if (sender) sender.replaceTrack(newTrack).catch(() => {});
             } catch (e) {}
           });
           videoTracks = [newTrack];
         }
-      } catch (e) {
-        console.warn('Could not re-acquire video track:', e);
-      }
+      } catch (e) {}
     }
 
     AppState.isCameraMuted = !AppState.isCameraMuted;
@@ -1410,13 +1364,17 @@ async function toggleCamera() {
       if (UI.iconCamOff) UI.iconCamOff.style.display = 'none';
       if (UI.localAvatar) UI.localAvatar.style.display = 'none';
       if (UI.localVideo) UI.localVideo.play().catch(() => {});
-      if (UI.waitingLocalPreview) UI.waitingLocalPreview.play().catch(() => {});
+      if (UI.waitingLocalPreview) {
+        UI.waitingLocalPreview.style.display = 'block';
+        UI.waitingLocalPreview.play().catch(() => {});
+      }
       showToast('Camera turned on');
     } else {
       if (UI.btnCam) UI.btnCam.className = 'ctrl-btn inactive-state';
       if (UI.iconCamOn) UI.iconCamOn.style.display = 'none';
       if (UI.iconCamOff) UI.iconCamOff.style.display = 'block';
       if (UI.localAvatar) UI.localAvatar.style.display = 'flex';
+      if (UI.waitingLocalPreview) UI.waitingLocalPreview.style.display = 'none';
       showToast('Camera turned off');
     }
 
@@ -1465,18 +1423,16 @@ async function flipCamera(event) {
       else UI.localVideo.classList.remove('no-mirror');
     }
 
-    // Replace track on all active WebRTC senders
     AppState.peerCalls.forEach((call) => {
       try {
         const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-        if (sender) sender.replaceTrack(newVideoTrack);
+        if (sender) sender.replaceTrack(newVideoTrack).catch(() => {});
       } catch (e) {}
     });
 
     showToast(`Switched to ${targetFacing === 'environment' ? 'rear' : 'front'} camera`);
   } catch (err) {
-    console.warn('Camera flip note:', err);
-    showToast('Camera switch note: ' + (err.name || 'Unavailable'));
+    showToast('Camera switch: ' + (err.name || 'Unavailable'));
   } finally {
     setTimeout(() => { isFlippingCamera = false; }, 500);
   }
@@ -1501,11 +1457,10 @@ async function toggleScreenShare() {
 
       const screenVideoTrack = displayStream.getVideoTracks()[0];
 
-      // Replace video sender on all active peer connections
       AppState.peerCalls.forEach((call) => {
         try {
           const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-          if (sender) sender.replaceTrack(screenVideoTrack);
+          if (sender) sender.replaceTrack(screenVideoTrack).catch(() => {});
         } catch (e) {}
       });
 
@@ -1513,6 +1468,7 @@ async function toggleScreenShare() {
         UI.localVideo.classList.add('no-mirror');
         UI.localVideo.srcObject = displayStream;
       }
+      if (UI.localAvatar) UI.localAvatar.style.display = 'none';
 
       screenVideoTrack.onended = () => {
         stopScreenSharing();
@@ -1521,7 +1477,7 @@ async function toggleScreenShare() {
       showToast('Screen sharing started');
     } catch (err) {
       if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
-        showAlert('Screen share notice: ' + (err.message || err.name), true);
+        showAlert('Screen share note: ' + (err.message || err.name), true);
       }
     }
   } else {
@@ -1543,13 +1499,14 @@ function stopScreenSharing() {
     UI.localVideo.classList.remove('no-mirror');
   }
   if (UI.localVideo) UI.localVideo.srcObject = AppState.localStream;
+  if (UI.localAvatar) UI.localAvatar.style.display = AppState.isCameraMuted ? 'flex' : 'none';
 
   const cameraTrack = AppState.localStream?.getVideoTracks()[0];
   if (cameraTrack) {
     AppState.peerCalls.forEach((call) => {
       try {
         const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-        if (sender) sender.replaceTrack(cameraTrack);
+        if (sender) sender.replaceTrack(cameraTrack).catch(() => {});
       } catch (e) {}
     });
   }
@@ -1557,9 +1514,6 @@ function stopScreenSharing() {
   showToast('Screen sharing stopped');
 }
 
-/* ==========================================================================
-   WhatsApp Web Left Sidebar & In-Call Chat Handlers
-   ========================================================================== */
 function toggleSidebar(forceState = null) {
   if (forceState !== null) {
     AppState.isSidebarOpen = forceState;
@@ -1609,7 +1563,7 @@ function switchSidebarTab(tabName) {
 function handleSendChatMessage(event) {
   if (event) event.preventDefault();
   if (!UI.chatInput) return;
-  const text = UI.chatInput.value.trim();
+  const text = UI.chatInput.value.trim().slice(0, 300);
   if (!text) return;
 
   const now = new Date();
@@ -1667,7 +1621,6 @@ function appendChatMessage(sender, text, isLocal, time) {
   timeSpan.textContent = time;
   metaDiv.appendChild(timeSpan);
 
-  // WhatsApp blue double checks (✓✓) for outgoing messages
   if (isLocal) {
     const checkSpan = document.createElement('span');
     checkSpan.className = 'chat-checks';
@@ -1684,7 +1637,6 @@ function appendChatMessage(sender, text, isLocal, time) {
   UI.chatMessagesList.appendChild(bubble);
   UI.chatMessagesList.scrollTop = UI.chatMessagesList.scrollHeight;
 
-  // Unread badge notifications if chat isn't currently in view
   if (!isLocal && (!AppState.isSidebarOpen || AppState.currentSidebarTab !== 'chat')) {
     AppState.unreadChatCount++;
     if (UI.chatUnreadBadge) {
@@ -1700,9 +1652,6 @@ function appendChatMessage(sender, text, isLocal, time) {
   }
 }
 
-/* ==========================================================================
-   Call Timer & Sharing Helpers
-   ========================================================================== */
 function startCallTimer() {
   stopCallTimer();
   AppState.callStartTime = Date.now();
@@ -1760,7 +1709,7 @@ function copyInviteLink() {
 
 function shareToWhatsApp() {
   const link = window.location.href;
-  const msg = encodeURIComponent(`Join my private video call on GhostCall! 📹\n\nRoom Code: ${AppState.currentRoomId}\nLink: ${link}`);
+  const msg = encodeURIComponent(`Join my private video call on GhostCall!\n\nRoom Code: ${AppState.currentRoomId}\nLink: ${link}`);
   window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
 }
 
@@ -1791,9 +1740,6 @@ function fallbackCopy(text, successMsg) {
   document.body.removeChild(temp);
 }
 
-/* ==========================================================================
-   Modals & Exit Navigation
-   ========================================================================== */
 function showRoomNotFoundModal(msg, title = 'Invalid Room Code') {
   const titleEl = document.getElementById('modal-room-error-title');
   if (titleEl) titleEl.textContent = title;
@@ -1825,7 +1771,6 @@ function executeLeaveCall() {
 function exitCallToHero(cleanHash = true) {
   AppState.isCallActive = false;
 
-  // Broadcast exit to peers before cleaning up
   broadcastMeshMessage({
     type: 'PEER_LEFT',
     peerId: AppState.myPeerId,
@@ -1835,12 +1780,10 @@ function exitCallToHero(cleanHash = true) {
   stopCallTimer();
   stopAudioAnalysis();
 
-  // Reset PiP swap state
   AppState.isSwappedVideo = false;
   AppState.swappedPeerId = null;
   if (UI.localVideoBox) UI.localVideoBox.classList.remove('is-swapped');
 
-  // Stop local hardware media tracks
   if (AppState.localStream) {
     AppState.localStream.getTracks().forEach(t => t.stop());
     AppState.localStream = null;
@@ -1852,7 +1795,6 @@ function exitCallToHero(cleanHash = true) {
   if (UI.localVideo) UI.localVideo.srcObject = null;
   if (UI.waitingLocalPreview) UI.waitingLocalPreview.srcObject = null;
 
-  // Close peer connections
   AppState.peerCalls.forEach(call => {
     try { call.close(); } catch (e) {}
   });
@@ -1871,11 +1813,9 @@ function exitCallToHero(cleanHash = true) {
     AppState.peer = null;
   }
 
-  // Clear remote video cards
   const cards = UI.videoGrid.querySelectorAll('.video-card');
   cards.forEach(c => c.remove());
 
-  // Close all open modals
   closeLeaveModal();
   closeShareModal();
   closeRoomNotFoundModal();
@@ -1910,7 +1850,6 @@ function showCallView() {
   if (UI.btnHeaderShare) UI.btnHeaderShare.style.display = 'inline-flex';
   if (UI.headerCallTimer) UI.headerCallTimer.style.display = 'inline-flex';
 
-  // Open sidebar by default on desktop, closed on mobile
   if (window.innerWidth > 1024) toggleSidebar(true);
   else toggleSidebar(false);
 }
@@ -1920,9 +1859,6 @@ function handleBrandClick() {
   else showHeroView();
 }
 
-/* ==========================================================================
-   Alerts & Toast Notification Helpers
-   ========================================================================== */
 function showAlert(text, isError = true) {
   if (UI.alertBanner && UI.alertText) {
     UI.alertText.textContent = text;
@@ -1953,33 +1889,29 @@ function showToast(text) {
   }, 3000);
 }
 
-/* ==========================================================================
-   WhatsApp Picture-in-Picture View Swap & Corner Snapping
-   ========================================================================== */
 function toggleSwapLocalAndRemoteVideo() {
   const remoteCards = Array.from(UI.videoGrid.querySelectorAll('.video-card'));
 
   if (remoteCards.length === 0) {
-    // Alone in room: flip camera / switch front-back
     flipCamera();
     return;
   }
 
   const targetCard = (AppState.swappedPeerId ? document.getElementById(`card-${AppState.swappedPeerId}`) : null) || remoteCards[0];
-  if (!targetCard) return;
+  if (!targetCard) {
+    AppState.isSwappedVideo = false;
+    AppState.swappedPeerId = null;
+    return;
+  }
 
   const remoteVideo = targetCard.querySelector('video');
   if (!remoteVideo) return;
 
   if (!AppState.isSwappedVideo) {
-    // Preserve original remote stream reference
     targetCard._remoteStream = remoteVideo.srcObject || targetCard._originalStream;
-
-    // Local stream displayed on large main stage video card
     remoteVideo.srcObject = AppState.localStream;
     remoteVideo.classList.add('local-preview-swapped');
 
-    // Remote stream displayed on corner floating PiP box
     if (UI.localVideo) {
       UI.localVideo.srcObject = targetCard._remoteStream;
       UI.localVideo.classList.add('no-mirror');
@@ -1990,13 +1922,11 @@ function toggleSwapLocalAndRemoteVideo() {
     if (UI.localVideoBox) UI.localVideoBox.classList.add('is-swapped');
     showToast('Swapped camera view');
   } else {
-    // Restore remote stream back to stage video card
     if (targetCard._remoteStream) {
       remoteVideo.srcObject = targetCard._remoteStream;
       remoteVideo.classList.remove('local-preview-swapped');
     }
 
-    // Restore local stream back to floating corner PiP
     if (UI.localVideo) {
       UI.localVideo.srcObject = AppState.localStream;
       if (AppState.facingMode === 'user') {
@@ -2042,7 +1972,6 @@ function snapPipToNearestCorner(pip) {
 
   const pipCenterX = pipRect.left + pipRect.width / 2;
   const pipCenterY = pipRect.top + pipRect.height / 2;
-
   const stageCenterX = stageRect.left + stageRect.width / 2;
   const stageCenterY = stageRect.top + stageRect.height / 2;
 
@@ -2051,8 +1980,8 @@ function snapPipToNearestCorner(pip) {
 
   const isMobile = window.innerWidth <= 768;
   const sideMargin = isMobile ? '12px' : '18px';
-  const topMargin = '60px'; // clear beneath see-through frosted navbar
-  const bottomMargin = isMobile ? '78px' : '84px'; // clear above floating dock
+  const topMargin = '60px';
+  const bottomMargin = isMobile ? '78px' : '84px';
 
   pip.style.transition = 'all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
 
@@ -2077,9 +2006,6 @@ function snapPipToNearestCorner(pip) {
   }, 320);
 }
 
-/* ==========================================================================
-   Draggable Picture-in-Picture Local Self-View
-   ========================================================================== */
 function initDragPip() {
   const pip = UI.localVideoBox;
   if (!pip) return;
@@ -2109,7 +2035,6 @@ function initDragPip() {
       hasMoved = true;
       pip.style.transition = 'none';
 
-      // Viewport & Stage clamping boundaries so PiP cannot be dragged off-screen
       const stage = document.getElementById('call-stage') || document.body;
       const stageRect = stage.getBoundingClientRect();
       const pipWidth = pip.offsetWidth || 115;
@@ -2139,10 +2064,8 @@ function initDragPip() {
     try { pip.releasePointerCapture(e.pointerId); } catch (err) {}
 
     if (!hasMoved) {
-      // Tap / Click without dragging -> WhatsApp View Swap
       toggleSwapLocalAndRemoteVideo();
     } else {
-      // Drag released -> Magnetically snap to closest corner
       snapPipToNearestCorner(pip);
     }
   };
@@ -2152,16 +2075,12 @@ function initDragPip() {
   pip.addEventListener('pointerup', onPointerUp);
   pip.addEventListener('pointercancel', onPointerUp);
 
-  // Double click / double tap shortcut to toggle enlarged view
   pip.addEventListener('dblclick', (e) => {
     e.stopPropagation();
     pip.classList.toggle('is-expanded');
   });
 }
 
-/* ==========================================================================
-   Global Keyboard Shortcuts
-   ========================================================================== */
 function initGlobalKeyboardShortcuts() {
   window.addEventListener('keydown', (e) => {
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
@@ -2198,9 +2117,6 @@ function initGlobalKeyboardShortcuts() {
   });
 }
 
-/* ==========================================================================
-   Full-Screen Mode Handlers
-   ========================================================================== */
 function toggleFullScreen() {
   const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
   if (!isFs) {
@@ -2216,16 +2132,9 @@ function toggleFullScreen() {
 function initFullscreenHandlers() {
   const updateFsUI = () => {
     const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    if (UI.iconFsEnter && UI.iconFsExit && UI.labelFs) {
-      if (isFs) {
-        UI.iconFsEnter.style.display = 'none';
-        UI.iconFsExit.style.display = 'block';
-        UI.labelFs.textContent = 'Exit';
-      } else {
-        UI.iconFsEnter.style.display = 'block';
-        UI.iconFsExit.style.display = 'none';
-        UI.labelFs.textContent = 'Full';
-      }
+    if (UI.iconFsEnter && UI.iconFsExit) {
+      UI.iconFsEnter.style.display = isFs ? 'none' : 'block';
+      UI.iconFsExit.style.display = isFs ? 'block' : 'none';
     }
   };
 
@@ -2233,7 +2142,6 @@ function initFullscreenHandlers() {
   document.addEventListener('webkitfullscreenchange', updateFsUI);
 }
 
-// Mobile Audio unlock on first touch gesture & call initialization
 function unlockAudio() {
   const videos = document.querySelectorAll('#video-grid video');
   videos.forEach((v) => {

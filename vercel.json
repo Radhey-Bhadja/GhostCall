@@ -28,7 +28,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.peerjs.com https://*.peerjs.com https://*.metered.ca; media-src 'self' blob:; img-src 'self' data: blob:"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://peerjs.com wss://*.peerjs.com https://peerjs.com https://*.peerjs.com https://*.metered.ca; media-src 'self' blob:; img-src 'self' data: blob:"
         }
       ]
     },

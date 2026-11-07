@@ -1,11 +1,5 @@
-/* ==========================================================================
-   GhostCall — WhatsApp Web Light Theme & Calling Interface
-   Aesthetic: WhatsApp Light Mode (Clean, Minimal, Mobile-First)
-   See-Through Frosted Navbar • Zero-Clutter Single-Column Hero
-   ========================================================================== */
-
 :root {
-  /* WhatsApp Light Palette */
+  
   --wa-green: #008069;
   --wa-green-hover: #017560;
   --wa-green-light: #d9fdd3;
@@ -47,7 +41,6 @@
   --transition-normal: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Base Reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -82,11 +75,6 @@ input {
   border: none;
 }
 
-/* ==========================================================================
-   Main Header Bar
-   - Landing view: Clean white header with logo & GhostCall title
-   - Call view: See-through frosted navbar across mobile, logo completely hidden
-   ========================================================================== */
 .main-header {
   height: 52px;
   background-color: var(--wa-bg-surface);
@@ -100,7 +88,6 @@ input {
   transition: all var(--transition-fast);
 }
 
-/* Brand Area (Logo + Title) */
 .brand-wrap {
   display: flex;
   align-items: center;
@@ -128,9 +115,6 @@ input {
   letter-spacing: -0.3px;
 }
 
-/* ==========================================================================
-   IN-CALL HEADER (See-Through Navbar + Logo Removed)
-   ========================================================================== */
 body.in-call-mode .main-header {
   position: absolute;
   top: 0;
@@ -145,12 +129,10 @@ body.in-call-mode .main-header {
   z-index: 50;
 }
 
-/* Remove logo and brand in active call mode as requested */
 body.in-call-mode .brand-wrap {
   display: none !important;
 }
 
-/* Top bar fills 100% width in call mode */
 body.in-call-mode .call-top-bar {
   width: 100%;
   display: flex;
@@ -159,7 +141,6 @@ body.in-call-mode .call-top-bar {
   gap: 6px;
 }
 
-/* In-Call Header Frosted Glass Pills */
 .header-pill {
   display: inline-flex;
   align-items: center;
@@ -234,7 +215,6 @@ body.in-call-mode .call-top-bar {
   background-color: var(--wa-green-hover);
 }
 
-/* Alert Banner */
 .alert-banner {
   background-color: #fee2e2;
   color: #991b1b;
@@ -273,9 +253,6 @@ body.in-call-mode .call-top-bar {
   font-size: 14px;
 }
 
-/* ==========================================================================
-   Hero Landing Screen (Clean Single-Column WhatsApp Card, Zero Left Column)
-   ========================================================================== */
 .hero-screen {
   width: 100%;
   height: calc(100vh - 52px);
@@ -496,9 +473,6 @@ body.in-call-mode .call-top-bar {
   padding-top: 12px;
 }
 
-/* ==========================================================================
-   Active Call View (Split-Screen Call Architecture)
-   ========================================================================== */
 .call-view-container {
   width: 100vw;
   height: 100vh;
@@ -510,9 +484,6 @@ body.in-call-mode .call-top-bar {
   position: relative;
 }
 
-/* ==========================================================================
-   Left WhatsApp Light Sidebar
-   ========================================================================== */
 .wa-sidebar {
   width: 360px;
   flex-shrink: 0;
@@ -523,7 +494,7 @@ body.in-call-mode .call-top-bar {
   flex-direction: column;
   z-index: 60;
   transition: transform var(--transition-normal);
-  padding-top: 48px; /* Offset for in-call see-through header */
+  padding-top: 48px; 
 }
 
 .sidebar-header {
@@ -597,10 +568,9 @@ body.in-call-mode .call-top-bar {
 }
 
 .btn-close-drawer {
-  display: none; /* Appears on mobile/tablet */
+  display: none; 
 }
 
-/* Tabs */
 .sidebar-tabs {
   height: 40px;
   background-color: var(--wa-bg-surface);
@@ -665,7 +635,6 @@ body.in-call-mode .call-top-bar {
   overflow: hidden;
 }
 
-/* Chat Thread */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -779,7 +748,6 @@ body.in-call-mode .call-top-bar {
   display: inline-flex;
 }
 
-/* Message Input Bar */
 .chat-input-bar {
   background-color: var(--wa-bg-hover);
   border-top: 1px solid var(--wa-border);
@@ -825,7 +793,6 @@ body.in-call-mode .call-top-bar {
   background-color: var(--wa-green-hover);
 }
 
-/* People / Info Pane */
 .people-pane-content {
   flex: 1;
   overflow-y: auto;
@@ -983,9 +950,6 @@ body.in-call-mode .call-top-bar {
   color: var(--wa-danger);
 }
 
-/* ==========================================================================
-   Calling Stage Area (Right Canvas with Dynamic Video Grid)
-   ========================================================================== */
 .call-stage-area {
   flex: 1;
   position: relative;
@@ -994,10 +958,9 @@ body.in-call-mode .call-top-bar {
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
-  padding: 56px 12px 12px 12px; /* Top padding offsets see-through navbar */
+  padding: 56px 12px 12px 12px; 
 }
 
-/* Stage Mobile Top Overlay Bar */
 .stage-top-overlay {
   position: absolute;
   top: 56px;
@@ -1008,7 +971,7 @@ body.in-call-mode .call-top-bar {
 
 .stage-btn-toggle {
   pointer-events: auto;
-  display: none; /* Desktop default: sidebar is open. Shown on mobile */
+  display: none; 
   align-items: center;
   gap: 6px;
   background: rgba(255, 255, 255, 0.9);
@@ -1028,7 +991,6 @@ body.in-call-mode .call-top-bar {
   border-radius: var(--radius-full);
 }
 
-/* Video Grid Layouts */
 #video-grid {
   width: 100%;
   height: 100%;
@@ -1072,7 +1034,6 @@ body.in-call-mode .call-top-bar {
   grid-auto-rows: 1fr;
 }
 
-/* Waiting Screen Banner */
 .waiting-banner {
   width: 100%;
   height: 100%;
@@ -1168,7 +1129,6 @@ body.in-call-mode .call-top-bar {
   border-radius: var(--radius-sm);
 }
 
-/* Remote Video Card */
 .video-card {
   position: relative;
   background-color: #0b141a;
@@ -1189,12 +1149,10 @@ body.in-call-mode .call-top-bar {
   background-color: #000;
 }
 
-/* Active Speaker Green Ring */
 .video-card.is-speaking {
   border-color: #00a884;
 }
 
-/* Avatar Placeholder */
 .avatar-placeholder {
   position: absolute;
   inset: 0;
@@ -1229,7 +1187,6 @@ body.in-call-mode .call-top-bar {
   color: #e9edef;
 }
 
-/* Video Card Name Tag */
 .tile-name-tag {
   position: absolute;
   bottom: 10px;
@@ -1274,13 +1231,6 @@ body.in-call-mode .call-top-bar {
   background-color: var(--wa-danger);
 }
 
-/* ==========================================================================
-   Corner Self-View (Picture-in-Picture Box) — WhatsApp Style
-   - Portrait aspect ratio (~3:4 vertical card)
-   - Rounded corners (16px), subtle border, soft drop shadow
-   - Clean view: hides distracting green status dot & "You" tag from face
-   - WhatsApp-style video swap, click-to-swap overlay, and magnetic corner snaps
-   ========================================================================== */
 .local-pip-box {
   position: absolute;
   bottom: 84px;
@@ -1320,7 +1270,6 @@ body.in-call-mode .call-top-bar {
   transform: none;
 }
 
-/* Swapped preview styles when views are exchanged */
 .local-pip-box.is-swapped video {
   transform: none;
 }
@@ -1339,13 +1288,11 @@ body.in-call-mode .call-top-bar {
   height: 250px;
 }
 
-/* Clean up PiP face clutter: Hide distracting green status dot and "You" tag pill */
 .local-pip-box .member-status-dot,
 .local-pip-box .tile-name-tag {
   display: none !important;
 }
 
-/* WhatsApp Swap Overlay */
 .pip-swap-overlay {
   position: absolute;
   inset: 0;
@@ -1371,7 +1318,6 @@ body.in-call-mode .call-top-bar {
   box-sizing: content-box;
 }
 
-/* PiP Mic slash badge placed neatly at bottom corner */
 .local-pip-box .tile-mic-slash {
   position: absolute;
   bottom: 8px;
@@ -1405,9 +1351,6 @@ body.in-call-mode .call-top-bar {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* ==========================================================================
-   WhatsApp Call Controls Dock (See-Through Floating Bar)
-   ========================================================================== */
 .controls-dock-wrap {
   position: absolute;
   bottom: 18px;
@@ -1494,9 +1437,6 @@ body.in-call-mode .call-top-bar {
   border-radius: var(--radius-full);
 }
 
-/* ==========================================================================
-   Modals (WhatsApp Clean Light Dialogs)
-   ========================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1651,7 +1591,6 @@ body.in-call-mode .call-top-bar {
   color: #ffffff;
 }
 
-/* Toast Pill */
 .toast-pill {
   position: fixed;
   bottom: 24px;
@@ -1684,16 +1623,11 @@ body.in-call-mode .call-top-bar {
   background-color: #00a884;
 }
 
-/* ==========================================================================
-   Mobile Responsiveness (< 1024px & < 768px & < 480px)
-   Navbar See-Through & Zero-Overflow Adaptations
-   ========================================================================== */
 @media (max-width: 1024px) {
   .stage-btn-toggle {
     display: inline-flex;
   }
 
-  /* Left Sidebar collapses into slide-out drawer */
   .wa-sidebar {
     position: absolute;
     top: 0;
@@ -1736,7 +1670,6 @@ body.in-call-mode .call-top-bar {
     width: 100%;
   }
 
-  /* See-through navbar mobile spacing */
   body.in-call-mode .main-header {
     height: 44px;
     padding: 0 8px;
@@ -1811,7 +1744,6 @@ body.in-call-mode .call-top-bar {
   }
 }
 
-/* Extra small mobile screens (iPhone SE / 320px - 400px) */
 @media (max-width: 420px) {
   .local-pip-box {
     width: 78px;
@@ -1821,7 +1753,7 @@ body.in-call-mode .call-top-bar {
     border-radius: 10px;
   }
   .badge-prefix {
-    display: none; /* Shows '# 580088' instead of 'Room: 580088' to guarantee zero overflow */
+    display: none; 
   }
 
   .invite-btn-text {
