@@ -348,6 +348,15 @@ body.in-call-mode .call-top-bar {
   background-color: #ffffff;
 }
 
+.hero-input-wrap.has-error {
+  border-color: var(--wa-danger) !important;
+  background-color: #fff5f5;
+}
+
+#name-input-error {
+  margin-top: 4px;
+}
+
 .hero-avatar-badge {
   font-size: 16px;
   margin-right: 8px;

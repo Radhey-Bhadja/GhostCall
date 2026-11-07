@@ -54,7 +54,7 @@ const AppState = {
   isSidebarOpen: false,
   currentSidebarTab: 'chat',
   isCallActive: false,
-  suppressNavConfirm: false,
+  _guestJoinTimeout: null,
   joinedPeersNotified: new Set(),
   isSwappedVideo: false,
   swappedPeerId: null,
@@ -141,6 +141,8 @@ const UI = {
   shareModalCode: document.getElementById('share-modal-code'),
   shareModalLinkInput: document.getElementById('share-modal-link-input'),
   nameInput: document.getElementById('input-display-name'),
+  nameEntryWrap: document.getElementById('name-entry-wrap'),
+  nameInputError: document.getElementById('name-input-error'),
   heroAvatarPreview: document.getElementById('hero-avatar-preview'),
   roomInput: document.getElementById('input-room-code'),
   roomInputError: document.getElementById('room-input-error'),
@@ -176,18 +178,27 @@ window.addEventListener('pagehide', () => {
   }
 });
 
-window.addEventListener('hashchange', () => {
-  if (AppState.suppressNavConfirm) return;
+function handleNavigationChange() {
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6 && extractedId !== AppState.currentRoomId) {
+      if (!AppState.myDisplayName || !AppState.myDisplayName.trim()) {
+        showHeroView();
+        if (UI.roomInput) UI.roomInput.value = extractedId;
+        showNameInputError('Please enter your name to join room #' + extractedId);
+        if (UI.nameInput) UI.nameInput.focus();
+        return;
+      }
       startVideoCallRoom(extractedId, true);
     }
-  } else if (!hash && AppState.isCallActive) {
-    confirmLeaveCall();
+  } else if (AppState.isCallActive) {
+    exitCallToHero(false);
   }
-});
+}
+
+window.addEventListener('popstate', handleNavigationChange);
+window.addEventListener('hashchange', handleNavigationChange);
 
 function initUserPreferences() {
   if (AppState.myDisplayName && UI.nameInput) {
@@ -197,9 +208,10 @@ function initUserPreferences() {
 
   if (UI.nameInput) {
     UI.nameInput.addEventListener('input', (e) => {
+      clearNameInputError();
       const val = e.target.value.trim();
       AppState.myDisplayName = val;
-      localStorage.setItem('ghostcall_username', val);
+      if (val) localStorage.setItem('ghostcall_username', val);
       updateHeroAvatarPreview(val);
       updateLocalDisplayName(val || 'You');
       broadcastProfileUpdate();
@@ -259,11 +271,55 @@ function updateLocalDisplayName(name) {
   if (UI.participantSelfInitial) UI.participantSelfInitial.textContent = initial;
 }
 
+function validateDisplayName(actionType = 'start') {
+  const raw = UI.nameInput ? UI.nameInput.value : (AppState.myDisplayName || '');
+  const val = raw.trim();
+  if (!val) {
+    const actionText = actionType === 'start' ? 'starting a video call' : 'joining a call';
+    showNameInputError(`Please enter your name before ${actionText}`);
+    if (UI.nameInput) {
+      UI.nameInput.value = '';
+      UI.nameInput.focus();
+    }
+    return false;
+  }
+  clearNameInputError();
+  AppState.myDisplayName = val;
+  localStorage.setItem('ghostcall_username', val);
+  return true;
+}
+
+function showNameInputError(msg) {
+  const wrap = UI.nameEntryWrap || document.getElementById('name-entry-wrap') || UI.nameInput?.parentElement;
+  if (wrap) wrap.classList.add('has-error');
+  const errEl = UI.nameInputError || document.getElementById('name-input-error');
+  if (errEl) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+}
+
+function clearNameInputError() {
+  const wrap = UI.nameEntryWrap || document.getElementById('name-entry-wrap') || UI.nameInput?.parentElement;
+  if (wrap) wrap.classList.remove('has-error');
+  const errEl = UI.nameInputError || document.getElementById('name-input-error');
+  if (errEl) {
+    errEl.textContent = '';
+    errEl.style.display = 'none';
+  }
+}
 function checkUrlHashOnLoad() {
   const hash = window.location.hash.replace('#', '').trim();
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6) {
+      if (!AppState.myDisplayName || !AppState.myDisplayName.trim()) {
+        showHeroView();
+        if (UI.roomInput) UI.roomInput.value = extractedId;
+        showNameInputError('Please enter your name to join room #' + extractedId);
+        if (UI.nameInput) UI.nameInput.focus();
+        return;
+      }
       startVideoCallRoom(extractedId, true);
       return;
     }
@@ -272,17 +328,19 @@ function checkUrlHashOnLoad() {
 }
 
 function createNewRoom() {
+  if (!validateDisplayName('start')) return;
   unlockAudio();
   const randomRoomId = String(Math.floor(100000 + Math.random() * 900000));
   startVideoCallRoom(randomRoomId, false);
 }
 
 function joinExistingRoom() {
+  if (!validateDisplayName('join')) return;
   unlockAudio();
   let val = UI.roomInput ? UI.roomInput.value.trim() : '';
   if (!val) {
     showRoomInputError('Please enter a 6-digit room code');
-    showRoomNotFoundModal('Please enter a 6-digit room code to join a call.');
+    showRoomNotFoundModal('Please enter a 6-digit room code to join a call.', 'Invalid Room Code');
     if (UI.roomInput) UI.roomInput.focus();
     return;
   }
@@ -294,7 +352,7 @@ function joinExistingRoom() {
 
   if (val.length !== 6) {
     showRoomInputError('Room code must be exactly 6 digits');
-    showRoomNotFoundModal('Room code must be exactly 6 digits (numbers only).');
+    showRoomNotFoundModal('Room code must be exactly 6 digits (numbers only).', 'Invalid Room Code');
     if (UI.roomInput) {
       UI.roomInput.value = val;
       UI.roomInput.focus();
@@ -328,16 +386,14 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   AppState.lastRoomId = roomId;
   AppState.isCallActive = true;
   AppState.isJoiningAsGuest = isGuest;
-  AppState.suppressNavConfirm = true;
 
-  window.location.hash = `room-${roomId}`;
-  try {
-    history.replaceState({ inRoom: true, room: roomId }, '', window.location.href);
-  } catch (e) {}
-
-  setTimeout(() => {
-    AppState.suppressNavConfirm = false;
-  }, 1000);
+  if (window.location.hash !== `#room-${roomId}`) {
+    try {
+      history.pushState({ inRoom: true, room: roomId }, '', `#room-${roomId}`);
+    } catch (e) {
+      window.location.hash = `room-${roomId}`;
+    }
+  }
 
   if (UI.displayRoomId) UI.displayRoomId.textContent = roomId;
   if (UI.waitingCodeText) UI.waitingCodeText.textContent = roomId;
@@ -541,6 +597,11 @@ function joinAsMeshGuest(hostPeerId) {
   AppState.isRoomHost = false;
   const guestId = `ghostcall-${AppState.currentRoomId}-guest-${AppState.sessionUid}`;
 
+  if (AppState._guestJoinTimeout) {
+    clearTimeout(AppState._guestJoinTimeout);
+    AppState._guestJoinTimeout = null;
+  }
+
   AppState.peer = new Peer(guestId, rtcConfiguration);
 
   AppState.peer.on('open', (id) => {
@@ -549,7 +610,12 @@ function joinAsMeshGuest(hostPeerId) {
     AppState.activeParticipants.add(id);
     updateParticipantsDisplay();
     bindPeerListeners();
-    notifyUserEvent(`You entered room #${AppState.currentRoomId}`);
+
+    AppState._guestJoinTimeout = setTimeout(() => {
+      if (AppState.isCallActive && AppState.isJoiningAsGuest && AppState.peerCalls.size === 0) {
+        handleRoomNotFound(`Room #${AppState.currentRoomId} does not exist or has ended.`);
+      }
+    }, 6000);
 
     connectDataChannelToPeer(hostPeerId);
     establishMediaCall(hostPeerId);
@@ -560,22 +626,30 @@ function joinAsMeshGuest(hostPeerId) {
       if (!AppState._guestRetryCount) AppState._guestRetryCount = 0;
       AppState._guestRetryCount++;
       if (AppState._guestRetryCount > 5) {
-        showAlert('Could not join room due to peer ID conflict. Please try again.', true);
+        handleRoomNotFound('Could not join room due to connection conflict. Please try again.');
         return;
       }
       AppState.sessionUid = Math.random().toString(36).substring(2, 8);
       setTimeout(() => joinAsMeshGuest(hostPeerId), 300 * AppState._guestRetryCount);
     } else if (err.type === 'peer-unavailable') {
-      if (AppState.peer) {
-        try { AppState.peer.destroy(); } catch (e) {}
-        AppState.peer = null;
-      }
-      AppState.isJoiningAsGuest = false;
-      setTimeout(() => {
-        if (AppState.isCallActive) initPeerMesh();
-      }, 300);
+      console.warn('Host peer does not exist. Room not found:', hostPeerId);
+      handleRoomNotFound(`Room #${AppState.currentRoomId} doesn't exist. Please enter a valid room code.`);
     }
   });
+}
+
+function handleRoomNotFound(msg) {
+  if (AppState._guestJoinTimeout) {
+    clearTimeout(AppState._guestJoinTimeout);
+    AppState._guestJoinTimeout = null;
+  }
+  exitCallToHero(true);
+  showRoomNotFoundModal(msg || "Room doesn't exist. Please enter a valid room code.", 'Room Not Found');
+  showRoomInputError("Room doesn't exist. Please enter a valid input.");
+  if (UI.roomInput) {
+    UI.roomInput.focus();
+    UI.roomInput.select();
+  }
 }
 
 function bindPeerListeners() {
@@ -590,6 +664,10 @@ function bindPeerListeners() {
     configureCallParameters(incomingCall);
 
     incomingCall.on('stream', (remoteStream) => {
+      if (AppState._guestJoinTimeout) {
+        clearTimeout(AppState._guestJoinTimeout);
+        AppState._guestJoinTimeout = null;
+      }
       renderRemoteVideoTile(incomingCall.peer, remoteStream);
     });
 
@@ -849,6 +927,10 @@ function establishMediaCall(remotePeerId) {
   configureCallParameters(call);
 
   call.on('stream', (remoteStream) => {
+    if (AppState._guestJoinTimeout) {
+      clearTimeout(AppState._guestJoinTimeout);
+      AppState._guestJoinTimeout = null;
+    }
     renderRemoteVideoTile(remotePeerId, remoteStream);
   });
 
@@ -1779,6 +1861,11 @@ function exitCallToHero(cleanHash = true) {
 
   stopCallTimer();
   stopAudioAnalysis();
+
+  if (AppState._guestJoinTimeout) {
+    clearTimeout(AppState._guestJoinTimeout);
+    AppState._guestJoinTimeout = null;
+  }
 
   AppState.isSwappedVideo = false;
   AppState.swappedPeerId = null;
