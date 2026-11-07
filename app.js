@@ -75,8 +75,18 @@ const AppState = {
   suppressNavConfirm: false,
   joinedPeersNotified: new Set(),
   isSwappedVideo: false,
-  swappedPeerId: null
+  swappedPeerId: null,
+  _guestRetryCount: 0
 };
+
+// ── XSS-Safe HTML Escape (audit fix #1) ──────────────────────────────────
+// All peer-supplied strings MUST pass through this before innerHTML insertion
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(str)));
+  return div.innerHTML;
+}
 
 // 3. Cached DOM References
 const UI = {
@@ -269,6 +279,11 @@ function initUserPreferences() {
   if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
     if (UI.btnCameraFlip) UI.btnCameraFlip.style.display = 'flex';
   }
+
+  // Hide screen share on browsers that don't support getDisplayMedia (iOS Safari, most mobile)
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    if (UI.btnScreen) UI.btnScreen.style.display = 'none';
+  }
 }
 
 function updateHeroAvatarPreview(name) {
@@ -304,12 +319,14 @@ function checkUrlHashOnLoad() {
    Room Creation & Zero-Login Flow
    ========================================================================== */
 function createNewRoom() {
+  unlockAudio();
   // Generate user-friendly 6-digit room code
   const randomRoomId = String(Math.floor(100000 + Math.random() * 900000));
   startVideoCallRoom(randomRoomId, false);
 }
 
 function joinExistingRoom() {
+  unlockAudio();
   let val = UI.roomInput ? UI.roomInput.value.trim() : '';
   if (!val) {
     showRoomInputError('Please enter a 6-digit room code');
@@ -318,10 +335,12 @@ function joinExistingRoom() {
     return;
   }
 
+  // Strip room URL schemes or hashes (e.g., "#room-580088", "room-580088")
   if (val.includes('#room-')) val = val.split('#room-')[1];
   else if (val.includes('#')) val = val.split('#')[1];
 
-  val = val.replace(/\D/g, '').slice(0, 6);
+  // Sanitize: strip spaces, dashes, symbols, and non-digits
+  val = val.replace(/[\s\-_]/g, '').replace(/\D/g, '').slice(0, 6);
 
   if (val.length !== 6) {
     showRoomInputError('Room code must be exactly 6 digits');
@@ -357,6 +376,7 @@ function clearRoomInputError() {
    Room Initialization & Media Setup
    ========================================================================== */
 async function startVideoCallRoom(roomId, isGuest = false) {
+  unlockAudio();
   AppState.currentRoomId = roomId;
   AppState.lastRoomId = roomId;
   AppState.isCallActive = true;
@@ -388,8 +408,11 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   // Step 2: Initialize WebRTC PeerJS Mesh
   initPeerMesh();
 
-  // Step 3: Start Active Speaker detection
+  // Step 3: Start Active Speaker detection & bind local analyser
   startAudioAnalysis();
+  if (AppState.localStream && AppState.audioContext) {
+    setupAudioAnalyser('local', AppState.localStream);
+  }
 }
 
 async function initLocalMediaStream() {
@@ -432,18 +455,20 @@ async function initLocalMediaStream() {
       attachLocalStream(fallbackStream);
       dismissAlert();
     } catch (fallbackErr) {
-      console.warn('Fallback media failed, trying basic video or audio:', fallbackErr);
+      console.warn('Fallback media failed, trying audio-first or video-only:', fallbackErr);
       try {
-        const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true });
-        attachLocalStream(videoOnly);
-        dismissAlert();
-      } catch (videoErr) {
+        // Fallback 1: Desktop without webcam or camera permission denied -> voice call
+        const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        attachLocalStream(audioOnly);
+        showAlert('No camera found or permitted. Joining in audio-only mode.', false);
+      } catch (audioErr) {
         try {
-          const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true });
-          attachLocalStream(audioOnly);
-          dismissAlert();
-        } catch (audioErr) {
-          // Hardware unavailable or blocked: create safe dummy fallback stream to allow UI and WebRTC answer
+          // Fallback 2: Camera without mic or mic permission denied -> video-only
+          const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          attachLocalStream(videoOnly);
+          showAlert('No microphone found or permitted. Joining in video-only mode.', false);
+        } catch (videoErr) {
+          // Hardware completely unavailable or blocked: create safe dummy fallback stream
           const dummyStream = createFallbackMediaStream();
           attachLocalStream(dummyStream);
 
@@ -503,17 +528,21 @@ function updateStageWaitingVisibility() {
 }
 
 // Fallback dummy stream with black canvas and silent audio track for zero-crash WebRTC answers
+let fallbackAudioCtx = null;
 function createFallbackMediaStream() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   let dummyAudio;
   if (AudioContextClass) {
     try {
-      const audioCtx = new AudioContextClass();
-      const osc = audioCtx.createOscillator();
-      const dst = osc.connect(audioCtx.createMediaStreamDestination());
+      if (!fallbackAudioCtx || fallbackAudioCtx.state === 'closed') {
+        fallbackAudioCtx = new AudioContextClass();
+      }
+      const osc = fallbackAudioCtx.createOscillator();
+      const destNode = fallbackAudioCtx.createMediaStreamDestination();
+      osc.connect(destNode);
       osc.start();
-      dummyAudio = dst.stream.getAudioTracks()[0];
-      dummyAudio.enabled = false;
+      dummyAudio = destNode.stream.getAudioTracks()[0];
+      if (dummyAudio) dummyAudio.enabled = false;
     } catch (e) {}
   }
 
@@ -577,6 +606,7 @@ function joinAsMeshGuest(hostPeerId) {
   AppState.peer = new Peer(guestId, rtcConfiguration);
 
   AppState.peer.on('open', (id) => {
+    AppState._guestRetryCount = 0;
     AppState.myPeerId = id;
     AppState.activeParticipants.add(id);
     console.log('✅ Registered as Guest Participant:', id);
@@ -592,9 +622,14 @@ function joinAsMeshGuest(hostPeerId) {
   AppState.peer.on('error', (err) => {
     console.warn('Guest peer error event:', err);
     if (err.type === 'unavailable-id') {
-      // Regenerate session ID and retry immediately
+      if (!AppState._guestRetryCount) AppState._guestRetryCount = 0;
+      AppState._guestRetryCount++;
+      if (AppState._guestRetryCount > 5) {
+        showAlert('Could not join room due to peer ID conflict. Please try again.', true);
+        return;
+      }
       AppState.sessionUid = Math.random().toString(36).substring(2, 8);
-      joinAsMeshGuest(hostPeerId);
+      setTimeout(() => joinAsMeshGuest(hostPeerId), 350 * AppState._guestRetryCount);
     } else if (err.type === 'peer-unavailable') {
       // If host is temporarily unavailable, retry once or stay in room awaiting peer rendezvous
       console.log('Host peer currently unavailable. Awaiting incoming connections...');
@@ -895,7 +930,14 @@ function configureCallParameters(call) {
     if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
       console.warn(`ICE state notice with ${call.peer}:`, pc.iceConnectionState);
       if (typeof pc.restartIce === 'function') {
-        try { pc.restartIce(); } catch (e) {}
+        try {
+          pc.restartIce();
+          if (pc.signalingState === 'stable' && typeof pc.createOffer === 'function') {
+            pc.createOffer({ iceRestart: true })
+              .then(offer => pc.setLocalDescription(offer))
+              .catch(() => {});
+          }
+        } catch (e) {}
       }
     }
   });
@@ -945,12 +987,14 @@ function renderRemoteVideoTile(peerId, stream) {
     videoEl = document.createElement('video');
     videoEl.autoplay = true;
     videoEl.playsInline = true;
+    videoEl.muted = false;
     videoEl.setAttribute('playsinline', '');
     videoEl.setAttribute('webkit-playsinline', '');
 
     // Avatar placeholder for when remote video is off
     const profile = AppState.peerProfiles.get(peerId) || { name: 'Friend' };
-    const initial = profile.name.charAt(0).toUpperCase();
+    const safeName = escapeHtml(profile.name || 'Friend');
+    const safeInitial = escapeHtml((profile.name || 'Friend').charAt(0).toUpperCase());
 
     avatarEl = document.createElement('div');
     avatarEl.className = 'avatar-placeholder';
@@ -958,16 +1002,16 @@ function renderRemoteVideoTile(peerId, stream) {
     avatarEl.style.display = 'none';
     avatarEl.innerHTML = `
       <div class="avatar-circle">
-        <span class="avatar-initial">${initial}</span>
+        <span class="avatar-initial">${safeInitial}</span>
       </div>
-      <span class="avatar-name">${profile.name}</span>
+      <span class="avatar-name">${safeName}</span>
     `;
 
     // Bottom name tag
     const nameTag = document.createElement('div');
     nameTag.className = 'tile-name-tag';
     nameTag.innerHTML = `
-      <span class="tag-name-text">${profile.name}</span>
+      <span class="tag-name-text">${safeName}</span>
     `;
 
     // Muted mic slash badge
@@ -995,13 +1039,22 @@ function renderRemoteVideoTile(peerId, stream) {
   // Preserve reference to the remote stream
   card._originalStream = stream;
 
-  // Safe playback handling
+  // Safe playback handling with unmuted audio guarantee
   if (videoEl && videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
-    videoEl.play().catch(() => {
-      // Unmute policy fallback on mobile
+    videoEl.muted = false;
+    videoEl.play().catch((err) => {
+      console.warn('Autoplay unmuted blocked by policy, fallback to muted until user tap:', err);
       videoEl.muted = true;
       videoEl.play().catch(e => console.warn('Muted remote play note:', e));
+      const unmuteOnInteraction = () => {
+        if (videoEl) {
+          videoEl.muted = false;
+          videoEl.play().catch(() => {});
+        }
+      };
+      window.addEventListener('click', unmuteOnInteraction, { once: true, passive: true });
+      window.addEventListener('touchstart', unmuteOnInteraction, { once: true, passive: true });
     });
   }
 
@@ -1049,6 +1102,10 @@ function updateRemoteTileProfile(peerId) {
 }
 
 function removeRemoteVideoTile(peerId) {
+  // Prevent redundant cleanup cycles if already removed
+  const card = document.getElementById(`card-${peerId}`);
+  if (!card && !AppState.peerCalls.has(peerId) && !AppState.peerDataChannels.has(peerId)) return;
+
   if (AppState.isSwappedVideo && AppState.swappedPeerId === peerId) {
     restoreVideoSwap();
   }
@@ -1074,7 +1131,6 @@ function removeRemoteVideoTile(peerId) {
   }
   speakingStateCache.delete(peerId);
 
-  const card = document.getElementById(`card-${peerId}`);
   if (card && card.parentNode) {
     card.parentNode.removeChild(card);
   }
@@ -1086,8 +1142,9 @@ function removeRemoteVideoTile(peerId) {
 }
 
 function adjustGridLayout() {
+  if (!UI.videoGrid) return;
   const remoteCount = AppState.peerCalls.size;
-  UI.videoGrid.className = '';
+  UI.videoGrid.classList.remove('layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-6', 'layout-8', 'layout-many');
 
   if (remoteCount <= 1) UI.videoGrid.classList.add('layout-1');
   else if (remoteCount === 2) UI.videoGrid.classList.add('layout-2');
@@ -1127,13 +1184,16 @@ function renderSidebarParticipantsList() {
     const isSpeaking = speakingStateCache.get(peerId) || false;
     if (isSpeaking) row.classList.add('is-speaking');
 
+    const safeName = escapeHtml(profile.name || 'Friend');
+    const safeInitial = escapeHtml((profile.name || 'Friend').charAt(0).toUpperCase());
+
     row.innerHTML = `
       <div class="participant-avatar">
-        <span>${profile.name.charAt(0).toUpperCase()}</span>
+        <span>${safeInitial}</span>
       </div>
       <div class="participant-details">
         <div class="participant-name-row">
-          <span class="participant-name">${profile.name}</span>
+          <span class="participant-name">${safeName}</span>
         </div>
         <span class="participant-role-sub">Remote Participant</span>
       </div>
@@ -1231,6 +1291,7 @@ function analyzeAudioFrame(now) {
 
     AppState.audioAnalysers.forEach((entry, id) => {
       try {
+        audioAnalysisBuffer.fill(0);
         entry.analyser.getByteFrequencyData(audioAnalysisBuffer);
         let sum = 0;
         for (let i = 0; i < audioAnalysisBuffer.length; i++) sum += audioAnalysisBuffer[i];
@@ -1281,16 +1342,16 @@ function toggleMicrophone() {
   audioTracks.forEach(t => t.enabled = !AppState.isMicMuted);
 
   if (!AppState.isMicMuted) {
-    UI.btnMic.className = 'ctrl-btn active-state';
-    UI.iconMicOn.style.display = 'block';
-    UI.iconMicOff.style.display = 'none';
+    if (UI.btnMic) UI.btnMic.className = 'ctrl-btn active-state';
+    if (UI.iconMicOn) UI.iconMicOn.style.display = 'block';
+    if (UI.iconMicOff) UI.iconMicOff.style.display = 'none';
     if (UI.localMicMini) UI.localMicMini.classList.remove('muted');
     if (UI.localMicSlash) UI.localMicSlash.style.display = 'none';
     showToast('Microphone unmuted');
   } else {
-    UI.btnMic.className = 'ctrl-btn inactive-state';
-    UI.iconMicOn.style.display = 'none';
-    UI.iconMicOff.style.display = 'block';
+    if (UI.btnMic) UI.btnMic.className = 'ctrl-btn inactive-state';
+    if (UI.iconMicOn) UI.iconMicOn.style.display = 'none';
+    if (UI.iconMicOff) UI.iconMicOff.style.display = 'block';
     if (UI.localMicMini) UI.localMicMini.classList.add('muted');
     if (UI.localMicSlash) UI.localMicSlash.style.display = 'flex';
     showToast('Microphone muted');
@@ -1303,63 +1364,66 @@ let isTogglingCamera = false;
 async function toggleCamera() {
   if (isTogglingCamera) return;
   isTogglingCamera = true;
-  setTimeout(() => { isTogglingCamera = false; }, 350);
 
-  if (!AppState.localStream) {
-    await initLocalMediaStream();
-    return;
-  }
-
-  let videoTracks = AppState.localStream.getVideoTracks();
-
-  // If no track or track ended, re-acquire camera
-  if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: AppState.facingMode || 'user' },
-        audio: false
-      });
-      const newTrack = newStream.getVideoTracks()[0];
-      if (newTrack) {
-        AppState.localStream.addTrack(newTrack);
-        if (UI.localVideo) UI.localVideo.srcObject = AppState.localStream;
-        
-        // Replace video track on all peer connections
-        AppState.peerCalls.forEach((call) => {
-          try {
-            const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-            if (sender) sender.replaceTrack(newTrack);
-          } catch (e) {}
-        });
-        videoTracks = [newTrack];
-      }
-    } catch (e) {
-      console.warn('Could not re-acquire video track:', e);
+  try {
+    if (!AppState.localStream) {
+      await initLocalMediaStream();
+      return;
     }
+
+    let videoTracks = AppState.localStream.getVideoTracks();
+
+    // If no track or track ended, re-acquire camera
+    if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: AppState.facingMode || 'user' },
+          audio: false
+        });
+        const newTrack = newStream.getVideoTracks()[0];
+        if (newTrack) {
+          AppState.localStream.addTrack(newTrack);
+          if (UI.localVideo) UI.localVideo.srcObject = AppState.localStream;
+          
+          // Replace video track on all peer connections
+          AppState.peerCalls.forEach((call) => {
+            try {
+              const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
+              if (sender) sender.replaceTrack(newTrack);
+            } catch (e) {}
+          });
+          videoTracks = [newTrack];
+        }
+      } catch (e) {
+        console.warn('Could not re-acquire video track:', e);
+      }
+    }
+
+    AppState.isCameraMuted = !AppState.isCameraMuted;
+    videoTracks.forEach(track => {
+      track.enabled = !AppState.isCameraMuted;
+    });
+
+    if (!AppState.isCameraMuted) {
+      if (UI.btnCam) UI.btnCam.className = 'ctrl-btn active-state';
+      if (UI.iconCamOn) UI.iconCamOn.style.display = 'block';
+      if (UI.iconCamOff) UI.iconCamOff.style.display = 'none';
+      if (UI.localAvatar) UI.localAvatar.style.display = 'none';
+      if (UI.localVideo) UI.localVideo.play().catch(() => {});
+      if (UI.waitingLocalPreview) UI.waitingLocalPreview.play().catch(() => {});
+      showToast('Camera turned on');
+    } else {
+      if (UI.btnCam) UI.btnCam.className = 'ctrl-btn inactive-state';
+      if (UI.iconCamOn) UI.iconCamOn.style.display = 'none';
+      if (UI.iconCamOff) UI.iconCamOff.style.display = 'block';
+      if (UI.localAvatar) UI.localAvatar.style.display = 'flex';
+      showToast('Camera turned off');
+    }
+
+    broadcastProfileUpdate();
+  } finally {
+    setTimeout(() => { isTogglingCamera = false; }, 350);
   }
-
-  AppState.isCameraMuted = !AppState.isCameraMuted;
-  videoTracks.forEach(track => {
-    track.enabled = !AppState.isCameraMuted;
-  });
-
-  if (!AppState.isCameraMuted) {
-    if (UI.btnCam) UI.btnCam.className = 'ctrl-btn active-state';
-    if (UI.iconCamOn) UI.iconCamOn.style.display = 'block';
-    if (UI.iconCamOff) UI.iconCamOff.style.display = 'none';
-    if (UI.localAvatar) UI.localAvatar.style.display = 'none';
-    if (UI.localVideo) UI.localVideo.play().catch(() => {});
-    if (UI.waitingLocalPreview) UI.waitingLocalPreview.play().catch(() => {});
-    showToast('Camera turned on');
-  } else {
-    if (UI.btnCam) UI.btnCam.className = 'ctrl-btn inactive-state';
-    if (UI.iconCamOn) UI.iconCamOn.style.display = 'none';
-    if (UI.iconCamOff) UI.iconCamOff.style.display = 'block';
-    if (UI.localAvatar) UI.localAvatar.style.display = 'flex';
-    showToast('Camera turned off');
-  }
-
-  broadcastProfileUpdate();
 }
 
 let isFlippingCamera = false;
@@ -1468,7 +1532,7 @@ async function toggleScreenShare() {
 function stopScreenSharing() {
   if (!AppState.isSharingScreen) return;
   AppState.isSharingScreen = false;
-  UI.btnScreen.className = 'ctrl-btn';
+  if (UI.btnScreen) UI.btnScreen.className = 'ctrl-btn';
 
   if (AppState.displayStream) {
     AppState.displayStream.getTracks().forEach(t => t.stop());
@@ -1524,26 +1588,27 @@ function switchSidebarTab(tabName) {
   if (!AppState.isSidebarOpen) toggleSidebar(true);
 
   if (tabName === 'chat') {
-    UI.tabBtnChat.classList.add('active');
-    UI.tabBtnPeople.classList.remove('active');
-    UI.sidebarPaneChat.style.display = 'flex';
-    UI.sidebarPanePeople.style.display = 'none';
+    if (UI.tabBtnChat) UI.tabBtnChat.classList.add('active');
+    if (UI.tabBtnPeople) UI.tabBtnPeople.classList.remove('active');
+    if (UI.sidebarPaneChat) UI.sidebarPaneChat.style.display = 'flex';
+    if (UI.sidebarPanePeople) UI.sidebarPanePeople.style.display = 'none';
     AppState.unreadChatCount = 0;
     if (UI.sidebarTabUnread) UI.sidebarTabUnread.style.display = 'none';
     if (UI.chatUnreadBadge) UI.chatUnreadBadge.style.display = 'none';
     if (UI.stageUnreadDot) UI.stageUnreadDot.style.display = 'none';
     if (UI.chatInput) setTimeout(() => UI.chatInput.focus(), 150);
   } else {
-    UI.tabBtnPeople.classList.add('active');
-    UI.tabBtnChat.classList.remove('active');
-    UI.sidebarPaneChat.style.display = 'none';
-    UI.sidebarPanePeople.style.display = 'flex';
+    if (UI.tabBtnPeople) UI.tabBtnPeople.classList.add('active');
+    if (UI.tabBtnChat) UI.tabBtnChat.classList.remove('active');
+    if (UI.sidebarPaneChat) UI.sidebarPaneChat.style.display = 'none';
+    if (UI.sidebarPanePeople) UI.sidebarPanePeople.style.display = 'flex';
     renderSidebarParticipantsList();
   }
 }
 
 function handleSendChatMessage(event) {
   if (event) event.preventDefault();
+  if (!UI.chatInput) return;
   const text = UI.chatInput.value.trim();
   if (!text) return;
 
@@ -1566,7 +1631,7 @@ function appendSystemNotification(text) {
   if (!UI.chatMessagesList) return;
   const msgDiv = document.createElement('div');
   msgDiv.className = 'chat-system-msg';
-  msgDiv.innerHTML = `<span>${text}</span>`;
+  msgDiv.innerHTML = `<span>${escapeHtml(text)}</span>`;
   UI.chatMessagesList.appendChild(msgDiv);
   UI.chatMessagesList.scrollTop = UI.chatMessagesList.scrollHeight;
 }
@@ -2043,8 +2108,26 @@ function initDragPip() {
     if (Math.hypot(dx, dy) > 5) {
       hasMoved = true;
       pip.style.transition = 'none';
-      pip.style.left = `${pipStartLeft + dx}px`;
-      pip.style.top = `${pipStartTop + dy}px`;
+
+      // Viewport & Stage clamping boundaries so PiP cannot be dragged off-screen
+      const stage = document.getElementById('call-stage') || document.body;
+      const stageRect = stage.getBoundingClientRect();
+      const pipWidth = pip.offsetWidth || 115;
+      const pipHeight = pip.offsetHeight || 160;
+
+      const minLeft = stageRect.left + 8;
+      const maxLeft = stageRect.right - pipWidth - 8;
+      const minTop = stageRect.top + 8;
+      const maxTop = stageRect.bottom - pipHeight - 8;
+
+      const targetLeft = pipStartLeft + dx;
+      const targetTop = pipStartTop + dy;
+
+      const clampedLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
+      const clampedTop = Math.max(minTop, Math.min(maxTop, targetTop));
+
+      pip.style.left = `${clampedLeft}px`;
+      pip.style.top = `${clampedTop}px`;
       pip.style.right = 'auto';
       pip.style.bottom = 'auto';
     }
@@ -2150,23 +2233,28 @@ function initFullscreenHandlers() {
   document.addEventListener('webkitfullscreenchange', updateFsUI);
 }
 
-// Mobile Audio unlock on first touch gesture
-function initMobileAudioUnlock() {
-  const unlockAudio = () => {
-    const videos = document.querySelectorAll('#video-grid video');
-    videos.forEach((v) => {
-      if (v.id !== 'waiting-local-preview' && v.muted) {
-        v.muted = false;
-        v.play().catch(() => {});
-      }
-    });
+// Mobile Audio unlock on first touch gesture & call initialization
+function unlockAudio() {
+  const videos = document.querySelectorAll('#video-grid video');
+  videos.forEach((v) => {
+    if (v.id !== 'waiting-local-preview' && v.id !== 'local-video' && v.muted) {
+      v.muted = false;
+      v.play().catch(() => {});
+    }
+  });
 
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass && AppState.audioContext && AppState.audioContext.state === 'suspended') {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (AudioContextClass) {
+    if (!AppState.audioContext) {
+      try { AppState.audioContext = new AudioContextClass(); } catch (e) {}
+    }
+    if (AppState.audioContext && AppState.audioContext.state === 'suspended') {
       AppState.audioContext.resume().catch(() => {});
     }
-  };
+  }
+}
 
+function initMobileAudioUnlock() {
   window.addEventListener('touchstart', unlockAudio, { passive: true, once: true });
   window.addEventListener('click', unlockAudio, { passive: true, once: true });
 }

@@ -15,11 +15,13 @@
   <!-- Main Stylesheet -->
   <link rel="stylesheet" href="app.css" />
 
-  <!-- PeerJS WebRTC Library with CDN Fallback -->
+  <!-- PeerJS WebRTC Library with Dynamic Resilient CDN Fallback -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
     if (typeof Peer === 'undefined') {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"><\/script>');
+      const peerFallbackScript = document.createElement('script');
+      peerFallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js';
+      document.head.appendChild(peerFallbackScript);
     }
   </script>
 </head>
