@@ -90,8 +90,6 @@ const UI = {
   btnCameraFlip: document.getElementById('btn-camera-flip'),
   appHeader: document.getElementById('app-header'),
   roomInfoPill: document.getElementById('header-room-pill'),
-  headerQualityPill: document.getElementById('header-quality-pill'),
-  qualityPillLabel: document.getElementById('quality-pill-label'),
   participantsPill: document.getElementById('header-participants-pill'),
   displayRoomId: document.getElementById('display-room-id'),
   participantCountText: document.getElementById('participant-count-text'),
@@ -1296,16 +1294,22 @@ function removeRemoteVideoTile(peerId) {
 
 function adjustGridLayout() {
   if (!UI.videoGrid) return;
-  const remoteCount = AppState.peerCalls.size;
-  UI.videoGrid.classList.remove('layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-6', 'layout-8', 'layout-many');
+  const remoteCount = AppState.peerCalls ? AppState.peerCalls.size : 0;
+  UI.videoGrid.classList.remove('layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5', 'layout-6', 'layout-8', 'layout-many');
 
   if (remoteCount <= 1) UI.videoGrid.classList.add('layout-1');
   else if (remoteCount === 2) UI.videoGrid.classList.add('layout-2');
   else if (remoteCount === 3) UI.videoGrid.classList.add('layout-3');
   else if (remoteCount === 4) UI.videoGrid.classList.add('layout-4');
-  else if (remoteCount <= 6) UI.videoGrid.classList.add('layout-6');
-  else if (remoteCount <= 8) UI.videoGrid.classList.add('layout-8');
+  else if (remoteCount === 5) UI.videoGrid.classList.add('layout-5');
+  else if (remoteCount === 6) UI.videoGrid.classList.add('layout-6');
   else UI.videoGrid.classList.add('layout-many');
+
+  const stage = UI.callStage || document.getElementById('call-stage');
+  if (stage) {
+    if (remoteCount >= 2) stage.classList.add('is-group-call');
+    else stage.classList.remove('is-group-call');
+  }
 }
 
 function updateParticipantsDisplay() {
@@ -2047,6 +2051,9 @@ function exitCallToHero(cleanHash = true) {
   const cards = UI.videoGrid.querySelectorAll('.video-card');
   cards.forEach(c => c.remove());
 
+  const stage = UI.callStage || document.getElementById('call-stage');
+  if (stage) stage.classList.remove('is-group-call');
+
   closeLeaveModal();
   closeShareModal();
   closeRoomNotFoundModal();
@@ -2068,7 +2075,6 @@ function showHeroView() {
   UI.heroView.style.display = 'flex';
   UI.callView.style.display = 'none';
   if (UI.roomInfoPill) UI.roomInfoPill.style.display = 'none';
-  if (UI.headerQualityPill) UI.headerQualityPill.style.display = 'none';
   if (UI.participantsPill) UI.participantsPill.style.display = 'none';
   if (UI.btnHeaderShare) UI.btnHeaderShare.style.display = 'none';
   if (UI.headerCallTimer) UI.headerCallTimer.style.display = 'none';
@@ -2079,7 +2085,6 @@ function showCallView() {
   UI.heroView.style.display = 'none';
   UI.callView.style.display = 'flex';
   if (UI.roomInfoPill) UI.roomInfoPill.style.display = 'inline-flex';
-  if (UI.headerQualityPill) UI.headerQualityPill.style.display = 'inline-flex';
   if (UI.participantsPill) UI.participantsPill.style.display = 'inline-flex';
   if (UI.btnHeaderShare) UI.btnHeaderShare.style.display = 'inline-flex';
   if (UI.headerCallTimer) UI.headerCallTimer.style.display = 'inline-flex';
@@ -2202,18 +2207,6 @@ function updateCameraStatsUI() {
   const height = settings.height || (UI.localVideo ? UI.localVideo.videoHeight : 0) || 1080;
   const fps = Math.round(settings.frameRate || 30);
   const label = videoTrack.label || 'Webcam / HD Camera';
-
-  let pillText = '1080p Clean';
-  if (height >= 1080 || width >= 1920) {
-    pillText = '1080p Clean';
-  } else if (height >= 720 || width >= 1280) {
-    pillText = '720p HD';
-  } else {
-    pillText = `${height}p Clean`;
-  }
-
-  const pillLabel = UI.qualityPillLabel || document.getElementById('quality-pill-label');
-  if (pillLabel) pillLabel.textContent = pillText;
 
   const camDevice = document.getElementById('cam-device-name');
   if (camDevice) camDevice.textContent = label.length > 28 ? label.slice(0, 26) + '...' : label;

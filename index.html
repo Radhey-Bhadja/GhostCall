@@ -47,11 +47,6 @@
         </svg>
       </button>
 
-      <button class="header-pill hd-quality-pill" id="header-quality-pill" style="display: none;" title="Camera Quality & Clean Video (Click to customize)" onclick="openVideoQualityModal()">
-        <span class="hd-badge-tag">HD</span>
-        <span id="quality-pill-label">1080p Clean</span>
-      </button>
-
       <div class="header-timer" id="header-call-timer" style="display: none;" title="Call duration">
         <span class="timer-dot"></span>
         <span id="call-duration-text">00:00</span>
@@ -266,24 +261,24 @@
         </button>
       </div>
 
-      <div id="video-grid" class="layout-1">
-        <div id="waiting-screen" class="waiting-banner">
-          <video id="waiting-local-preview" class="waiting-preview-video" autoplay playsinline muted></video>
-          <div class="waiting-card">
-            <div class="waiting-badge">
-              <span class="pulse-dot"></span>
-              <span>Room Ready</span>
-            </div>
-            <h3>Waiting for others...</h3>
-            <p>Share this 6-digit code or link with your friends to join.</p>
-            <div class="waiting-code-box" onclick="copyRoomCode()" title="Click to copy">
-              <span class="waiting-code-label">CODE:</span>
-              <strong id="waiting-code-text">------</strong>
-            </div>
-            <button class="btn-wa-primary btn-sm-share" onclick="handleShareAction()">
-              <span>Share Invite Link</span>
-            </button>
+      <div id="video-grid" class="layout-1"></div>
+
+      <div id="waiting-screen" class="waiting-banner">
+        <video id="waiting-local-preview" class="waiting-preview-video" autoplay playsinline muted></video>
+        <div class="waiting-card">
+          <div class="waiting-badge">
+            <span class="pulse-dot"></span>
+            <span>Room Ready</span>
           </div>
+          <h3>Waiting for others...</h3>
+          <p>Share this 6-digit code or link with your friends to join.</p>
+          <div class="waiting-code-box" onclick="copyRoomCode()" title="Click to copy">
+            <span class="waiting-code-label">CODE:</span>
+            <strong id="waiting-code-text">------</strong>
+          </div>
+          <button class="btn-wa-primary btn-sm-share" onclick="handleShareAction()">
+            <span>Share Invite Link</span>
+          </button>
         </div>
       </div>
 
