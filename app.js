@@ -54,6 +54,9 @@ const AppState = {
   isSidebarOpen: false,
   currentSidebarTab: 'chat',
   isCallActive: false,
+  isVerifyingRoom: false,
+  verifyingPeer: null,
+  verifyingTimeout: null,
   _guestJoinTimeout: null,
   joinedPeersNotified: new Set(),
   isSwappedVideo: false,
@@ -188,7 +191,10 @@ function handleNavigationChange() {
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6 && extractedId !== AppState.currentRoomId) {
-      startVideoCallRoom(extractedId, true);
+      if (AppState.isCallActive) {
+        exitCallToHero(false, true);
+      }
+      verifyAndJoinRoom(extractedId, true);
     }
   } else if (AppState.isCallActive) {
     exitCallToHero(false);
@@ -306,7 +312,9 @@ function checkUrlHashOnLoad() {
   if (hash.startsWith('room-')) {
     const extractedId = hash.replace('room-', '').replace(/\D/g, '').slice(0, 6);
     if (extractedId.length === 6) {
-      startVideoCallRoom(extractedId, true);
+      showHeroView();
+      if (UI.roomInput) UI.roomInput.value = extractedId;
+      verifyAndJoinRoom(extractedId, true);
       return;
     }
   }
@@ -318,6 +326,37 @@ function createNewRoom() {
   unlockAudio();
   const randomRoomId = String(Math.floor(100000 + Math.random() * 900000));
   startVideoCallRoom(randomRoomId, false);
+}
+
+function setJoinButtonLoading() {
+  if (UI.btnJoinRoom) {
+    UI.btnJoinRoom.disabled = true;
+    UI.btnJoinRoom.classList.add('is-loading');
+    UI.btnJoinRoom.innerHTML = '<span class="btn-spinner"></span><span>Joining...</span>';
+  }
+  const btnCreate = document.getElementById('btn-create-room');
+  if (btnCreate) btnCreate.disabled = true;
+  if (UI.roomInput) UI.roomInput.disabled = true;
+}
+
+function resetJoinButtonState() {
+  AppState.isVerifyingRoom = false;
+  if (AppState.verifyingTimeout) {
+    clearTimeout(AppState.verifyingTimeout);
+    AppState.verifyingTimeout = null;
+  }
+  if (AppState.verifyingPeer) {
+    try { AppState.verifyingPeer.destroy(); } catch (e) {}
+    AppState.verifyingPeer = null;
+  }
+  if (UI.btnJoinRoom) {
+    UI.btnJoinRoom.disabled = false;
+    UI.btnJoinRoom.classList.remove('is-loading');
+    UI.btnJoinRoom.innerHTML = '<span>Join</span>';
+  }
+  const btnCreate = document.getElementById('btn-create-room');
+  if (btnCreate) btnCreate.disabled = false;
+  if (UI.roomInput) UI.roomInput.disabled = false;
 }
 
 function joinExistingRoom() {
@@ -347,7 +386,135 @@ function joinExistingRoom() {
   }
 
   clearRoomInputError();
-  startVideoCallRoom(val, true);
+  verifyAndJoinRoom(val, false);
+}
+
+function verifyAndJoinRoom(roomId, fromHash = false) {
+  if (AppState.isVerifyingRoom || AppState.isCallActive) return;
+
+  validateDisplayName();
+  unlockAudio();
+
+  const cleanRoomId = String(roomId || '').replace(/\D/g, '').slice(0, 6);
+  if (cleanRoomId.length !== 6) {
+    if (fromHash) {
+      try {
+        history.replaceState('', document.title, window.location.pathname + window.location.search);
+      } catch (e) {}
+    }
+    showRoomInputError('Room code must be exactly 6 digits');
+    showRoomNotFoundModal('Room code must be exactly 6 digits (numbers only).', 'Invalid Room Code');
+    if (UI.roomInput) {
+      UI.roomInput.value = cleanRoomId;
+      UI.roomInput.focus();
+    }
+    return;
+  }
+
+  AppState.isVerifyingRoom = true;
+  clearRoomInputError();
+  setJoinButtonLoading();
+
+  if (UI.roomInput) UI.roomInput.value = cleanRoomId;
+
+  const candidateSessionUid = Math.random().toString(36).substring(2, 8);
+  const candidateGuestId = `ghostcall-${cleanRoomId}-guest-${candidateSessionUid}`;
+  const hostPeerId = `ghostcall-${cleanRoomId}-host`;
+
+  let hasResolved = false;
+  let checkPeer = null;
+  let candidateConn = null;
+
+  const cleanup = () => {
+    resetJoinButtonState();
+    if (checkPeer) {
+      try { checkPeer.destroy(); } catch (e) {}
+      checkPeer = null;
+    }
+  };
+
+  const onVerificationFailed = (msg, modalTitle = 'Room Not Found') => {
+    if (hasResolved) return;
+    hasResolved = true;
+    cleanup();
+    if (fromHash) {
+      try {
+        history.replaceState('', document.title, window.location.pathname + window.location.search);
+      } catch (e) {}
+    }
+    showRoomInputError(msg || "Room doesn't exist. Please enter a valid room code.");
+    showRoomNotFoundModal(msg || `Room #${cleanRoomId} doesn't exist. Please enter a valid room code.`, modalTitle);
+    if (UI.roomInput) {
+      UI.roomInput.focus();
+      UI.roomInput.select();
+    }
+  };
+
+  AppState.verifyingTimeout = setTimeout(() => {
+    if (!hasResolved) {
+      onVerificationFailed(`Room #${cleanRoomId} does not exist or has ended.`);
+    }
+  }, 6000);
+
+  try {
+    checkPeer = new Peer(candidateGuestId, rtcConfiguration);
+    AppState.verifyingPeer = checkPeer;
+  } catch (err) {
+    onVerificationFailed('Could not initialize network connection. Please check your internet connection.');
+    return;
+  }
+
+  checkPeer.on('open', () => {
+    if (hasResolved) return;
+    try {
+      candidateConn = checkPeer.connect(hostPeerId, { reliable: true });
+
+      candidateConn.on('open', () => {
+        if (hasResolved) return;
+        hasResolved = true;
+
+        if (AppState.verifyingTimeout) {
+          clearTimeout(AppState.verifyingTimeout);
+          AppState.verifyingTimeout = null;
+        }
+
+        AppState.isVerifyingRoom = false;
+        AppState.verifyingPeer = null;
+        resetJoinButtonState();
+
+        // Room confirmed to exist on signaling server! Transition into call screen and start media
+        AppState.sessionUid = candidateSessionUid;
+        startVideoCallRoom(cleanRoomId, true, {
+          peer: checkPeer,
+          conn: candidateConn,
+          hostPeerId: hostPeerId
+        });
+      });
+
+      candidateConn.on('error', () => {
+        onVerificationFailed(`Room #${cleanRoomId} doesn't exist or is unavailable.`);
+      });
+
+      candidateConn.on('close', () => {
+        if (!hasResolved) {
+          onVerificationFailed(`Room #${cleanRoomId} is not available.`);
+        }
+      });
+    } catch (e) {
+      onVerificationFailed(`Could not connect to room #${cleanRoomId}.`);
+    }
+  });
+
+  checkPeer.on('error', (err) => {
+    if (hasResolved) return;
+    if (err.type === 'peer-unavailable') {
+      onVerificationFailed(`Room #${cleanRoomId} doesn't exist. Please enter a valid room code.`);
+    } else if (err.type === 'unavailable-id') {
+      onVerificationFailed('Connection conflict. Please try joining again.');
+    } else {
+      onVerificationFailed(`Unable to reach room #${cleanRoomId}. Please check your connection.`);
+    }
+  });
 }
 
 function showRoomInputError(msg) {
@@ -366,7 +533,7 @@ function clearRoomInputError() {
   }
 }
 
-async function startVideoCallRoom(roomId, isGuest = false) {
+async function startVideoCallRoom(roomId, isGuest = false, preverified = null) {
   unlockAudio();
   AppState.currentRoomId = roomId;
   AppState.lastRoomId = roomId;
@@ -390,6 +557,27 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   updateLocalDisplayName(AppState.myDisplayName || 'You');
   showCallView();
   startCallTimer();
+
+  if (preverified && preverified.peer && preverified.conn) {
+    AppState.isRoomHost = false;
+    AppState.peer = preverified.peer;
+    AppState.myPeerId = preverified.peer.id;
+    AppState.activeParticipants.add(preverified.peer.id);
+    AppState.activeParticipants.add(preverified.hostPeerId);
+    updateParticipantsDisplay();
+
+    bindPeerListeners();
+    setupDataConnection(preverified.conn);
+
+    await initLocalMediaStream();
+    establishMediaCall(preverified.hostPeerId);
+    startAudioAnalysis();
+    if (AppState.localStream && AppState.audioContext) {
+      setupAudioAnalyser('local', AppState.localStream);
+    }
+    notifyUserEvent(`You entered room #${roomId}`);
+    return;
+  }
 
   await initLocalMediaStream();
   initPeerMesh();
@@ -714,9 +902,9 @@ function handleRoomNotFound(msg) {
     clearTimeout(AppState._guestJoinTimeout);
     AppState._guestJoinTimeout = null;
   }
-  exitCallToHero(true);
+  exitCallToHero(true, true);
   showRoomNotFoundModal(msg || "Room doesn't exist. Please enter a valid room code.", 'Room Not Found');
-  showRoomInputError("Room doesn't exist. Please enter a valid input.");
+  showRoomInputError("Room doesn't exist. Please enter a valid room code.");
   if (UI.roomInput) {
     UI.roomInput.focus();
     UI.roomInput.select();
@@ -761,33 +949,45 @@ function bindPeerListeners() {
 }
 
 function setupDataConnection(conn) {
-  conn.on('open', () => {
+  if (!conn) return;
+
+  const handleOpen = () => {
     AppState.peerDataChannels.set(conn.peer, conn);
     AppState.activeParticipants.add(conn.peer);
 
-    conn.send({
-      type: 'PROFILE_UPDATE',
-      peerId: AppState.myPeerId,
-      name: AppState.myDisplayName || 'Friend',
-      videoEnabled: !AppState.isCameraMuted,
-      audioEnabled: !AppState.isMicMuted
-    });
+    try {
+      conn.send({
+        type: 'PROFILE_UPDATE',
+        peerId: AppState.myPeerId,
+        name: AppState.myDisplayName || 'Friend',
+        videoEnabled: !AppState.isCameraMuted,
+        audioEnabled: !AppState.isMicMuted
+      });
+    } catch (e) {}
 
     if (AppState.isRoomHost) {
-      conn.send({
-        type: 'ROOM_MEMBERS',
-        peers: Array.from(AppState.activeParticipants),
-        profiles: Object.fromEntries(AppState.peerProfiles)
-      });
+      try {
+        conn.send({
+          type: 'ROOM_MEMBERS',
+          peers: Array.from(AppState.activeParticipants),
+          profiles: Object.fromEntries(AppState.peerProfiles)
+        });
 
-      broadcastMeshMessage({
-        type: 'PEER_JOINED',
-        newPeerId: conn.peer
-      }, conn.peer);
+        broadcastMeshMessage({
+          type: 'PEER_JOINED',
+          newPeerId: conn.peer
+        }, conn.peer);
+      } catch (e) {}
     }
 
     updateParticipantsDisplay();
-  });
+  };
+
+  if (conn.open) {
+    handleOpen();
+  } else {
+    conn.on('open', handleOpen);
+  }
 
   conn.on('data', (data) => {
     handleMeshSignaling(data, conn.peer);
@@ -1998,7 +2198,7 @@ function executeLeaveCall() {
   exitCallToHero(true);
 }
 
-function exitCallToHero(cleanHash = true) {
+function exitCallToHero(cleanHash = true, suppressToast = false) {
   AppState.isCallActive = false;
 
   broadcastMeshMessage({
@@ -2066,11 +2266,15 @@ function exitCallToHero(cleanHash = true) {
     } catch (e) {}
   }
 
+  resetJoinButtonState();
   showHeroView();
-  showToast('You left the video call');
+  if (!suppressToast) {
+    showToast('You left the video call');
+  }
 }
 
 function showHeroView() {
+  resetJoinButtonState();
   UI.body.classList.remove('in-call-mode');
   UI.heroView.style.display = 'flex';
   UI.callView.style.display = 'none';
