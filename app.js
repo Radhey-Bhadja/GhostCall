@@ -58,7 +58,9 @@ const AppState = {
   joinedPeersNotified: new Set(),
   isSwappedVideo: false,
   swappedPeerId: null,
-  _guestRetryCount: 0
+  _guestRetryCount: 0,
+  videoQualityPreset: localStorage.getItem('ghostcall_video_resolution') || '1080p',
+  videoEnhancementMode: localStorage.getItem('ghostcall_video_enhancement') || 'clean'
 };
 
 function escapeHtml(str) {
@@ -88,6 +90,8 @@ const UI = {
   btnCameraFlip: document.getElementById('btn-camera-flip'),
   appHeader: document.getElementById('app-header'),
   roomInfoPill: document.getElementById('header-room-pill'),
+  headerQualityPill: document.getElementById('header-quality-pill'),
+  qualityPillLabel: document.getElementById('quality-pill-label'),
   participantsPill: document.getElementById('header-participants-pill'),
   displayRoomId: document.getElementById('display-room-id'),
   participantCountText: document.getElementById('participant-count-text'),
@@ -117,6 +121,7 @@ const UI = {
   controlsDock: document.getElementById('controls-dock'),
   btnMic: document.getElementById('btn-mic'),
   btnCam: document.getElementById('btn-cam'),
+  btnVideoQuality: document.getElementById('btn-video-quality'),
   btnScreen: document.getElementById('btn-screen'),
   btnChat: document.getElementById('btn-chat'),
   chatUnreadBadge: document.getElementById('chat-unread-badge'),
@@ -136,6 +141,7 @@ const UI = {
   toastText: document.getElementById('toast-text'),
   modalLeave: document.getElementById('modal-leave'),
   modalShare: document.getElementById('modal-share'),
+  modalVideoQuality: document.getElementById('modal-video-quality'),
   modalRoomNotFound: document.getElementById('modal-room-not-found'),
   modalRoomErrorDesc: document.getElementById('modal-room-error-desc'),
   shareModalCode: document.getElementById('share-modal-code'),
@@ -152,6 +158,7 @@ const UI = {
 
 window.addEventListener('DOMContentLoaded', () => {
   initUserPreferences();
+  applyInitialVideoEnhancement();
   initDragPip();
   initGlobalKeyboardShortcuts();
   initFullscreenHandlers();
@@ -394,66 +401,147 @@ async function startVideoCallRoom(roomId, isGuest = false) {
   }
 }
 
-async function initLocalMediaStream() {
-  const primaryConstraints = {
-    video: {
-      facingMode: AppState.facingMode || 'user',
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
+function getVideoConstraintsForPreset(preset = '1080p', facingMode = 'user') {
+  const facing = facingMode ? { ideal: facingMode } : 'user';
+
+  if (preset === '1080p') {
+    return {
+      facingMode: facing,
+      width: { ideal: 1920, min: 1280 },
+      height: { ideal: 1080, min: 720 },
+      aspectRatio: { ideal: 1.777777778 },
       frameRate: { ideal: 30, max: 60 }
-    },
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-      sampleRate: { ideal: 48000 }
+    };
+  } else if (preset === '720p') {
+    return {
+      facingMode: facing,
+      width: { ideal: 1280, min: 960 },
+      height: { ideal: 720, min: 540 },
+      aspectRatio: { ideal: 1.777777778 },
+      frameRate: { ideal: 30 }
+    };
+  } else {
+    return {
+      facingMode: facing,
+      width: { ideal: 854 },
+      height: { ideal: 480 },
+      frameRate: { ideal: 24, max: 30 }
+    };
+  }
+}
+
+async function enhanceCameraTrackSettings(track) {
+  if (!track || track.kind !== 'video') return;
+  try {
+    if (typeof track.getCapabilities === 'function') {
+      const caps = track.getCapabilities();
+      const advanced = {};
+      if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+        advanced.focusMode = 'continuous';
+      }
+      if (caps.exposureMode && Array.isArray(caps.exposureMode) && caps.exposureMode.includes('continuous')) {
+        advanced.exposureMode = 'continuous';
+      }
+      if (caps.whiteBalanceMode && Array.isArray(caps.whiteBalanceMode) && caps.whiteBalanceMode.includes('continuous')) {
+        advanced.whiteBalanceMode = 'continuous';
+      }
+      if (Object.keys(advanced).length > 0 && typeof track.applyConstraints === 'function') {
+        await track.applyConstraints({ advanced: [advanced] }).catch(() => {});
+      }
     }
+  } catch (e) {
+    console.debug('Camera track enhancement note:', e);
+  }
+}
+
+async function initLocalMediaStream() {
+  const preset = AppState.videoQualityPreset || '1080p';
+  const facing = AppState.facingMode || 'user';
+
+  const audioConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    sampleRate: { ideal: 48000 }
   };
 
+  let stream = null;
+
+  // Level 1: Full high-clarity constraints based on preset
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(primaryConstraints);
-    attachLocalStream(stream);
-    dismissAlert();
-  } catch (err) {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: getVideoConstraintsForPreset(preset, facing),
+      audio: audioConstraints
+    });
+  } catch (err1) {
+    // Level 2: Relaxed 1080p without min constraints
     try {
-      const fallbackStream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: AppState.facingMode || 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
+          facingMode: facing ? { ideal: facing } : 'user',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30, max: 60 }
         },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        audio: audioConstraints
       });
-      attachLocalStream(fallbackStream);
-      dismissAlert();
-    } catch (fallbackErr) {
+    } catch (err2) {
+      // Level 3: Relaxed 720p HD
       try {
-        const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        attachLocalStream(audioOnly);
-        showAlert('No camera found or permitted. Joining in audio-only mode.', false);
-      } catch (audioErr) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facing ? { ideal: facing } : 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          },
+          audio: audioConstraints
+        });
+      } catch (err3) {
+        // Level 4: Basic video
         try {
-          const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          attachLocalStream(videoOnly);
-          showAlert('No microphone found or permitted. Joining in video-only mode.', false);
-        } catch (videoErr) {
-          const dummyStream = createFallbackMediaStream();
-          attachLocalStream(dummyStream);
-          if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
-            showAlert('Camera & Microphone access was blocked. Tap the lock icon in your browser address bar to allow.', true);
-          } else if (fallbackErr.name === 'NotFoundError') {
-            showAlert('No camera or microphone found. You can still watch and chat.', true);
-          } else {
-            showAlert('Media access error: ' + (fallbackErr.message || 'Check device permissions'), true);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facing ? { ideal: facing } : 'user' },
+            audio: audioConstraints
+          });
+        } catch (err4) {
+          try {
+            const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            attachLocalStream(audioOnly);
+            showAlert('No camera found or permitted. Joining in audio-only mode.', false);
+            return;
+          } catch (audioErr) {
+            try {
+              const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+              attachLocalStream(videoOnly);
+              showAlert('No microphone found or permitted. Joining in video-only mode.', false);
+              return;
+            } catch (videoErr) {
+              const dummyStream = createFallbackMediaStream();
+              attachLocalStream(dummyStream);
+              if (err4.name === 'NotAllowedError' || err4.name === 'PermissionDeniedError') {
+                showAlert('Camera & Microphone access was blocked. Tap the lock icon in your browser address bar to allow.', true);
+              } else if (err4.name === 'NotFoundError') {
+                showAlert('No camera or microphone found. You can still watch and chat.', true);
+              } else {
+                showAlert('Media access error: ' + (err4.message || 'Check device permissions'), true);
+              }
+              return;
+            }
           }
         }
       }
     }
+  }
+
+  if (stream) {
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack) {
+      await enhanceCameraTrackSettings(videoTrack);
+    }
+    attachLocalStream(stream);
+    dismissAlert();
+    updateCameraStatsUI();
   }
 }
 
@@ -465,6 +553,9 @@ function attachLocalStream(stream) {
     UI.localVideo.setAttribute('playsinline', '');
     UI.localVideo.srcObject = stream;
     UI.localVideo.play().catch(() => {});
+    UI.localVideo.onloadedmetadata = () => {
+      updateCameraStatsUI();
+    };
   }
 
   if (UI.waitingLocalPreview) {
@@ -476,6 +567,7 @@ function attachLocalStream(stream) {
   }
 
   updateStageWaitingVisibility();
+  updateCameraStatsUI();
   setupAudioAnalyser('local', stream);
 }
 
@@ -933,6 +1025,7 @@ function optimizeWebRtcSdp(sdp) {
   if (!sdp || typeof sdp !== 'string') return sdp;
 
   try {
+    // 1. Studio Opus Audio Optimization
     const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000\/2/i);
     if (opusMatch) {
       const pt = opusMatch[1];
@@ -951,7 +1044,33 @@ function optimizeWebRtcSdp(sdp) {
         sdp = sdp.replace(opusMatch[0], `${opusMatch[0]}\r\na=fmtp:${pt} ${studioAudioParams}`);
       }
     }
-  } catch (err) {}
+
+    // 2. Ultra-Clear HD Video Bandwidth (4.0 Mbps target with immediate high bitrate)
+    if (sdp.includes('m=video')) {
+      const parts = sdp.split('m=video');
+      let videoPart = parts[1];
+      videoPart = videoPart.replace(/(\r?\n)b=(AS|TIAS):[^\r\n]+/g, '');
+
+      const firstLineEnd = videoPart.indexOf('\n');
+      if (firstLineEnd !== -1) {
+        const header = videoPart.substring(0, firstLineEnd + 1);
+        let rest = videoPart.substring(firstLineEnd + 1);
+
+        const bw = 'b=AS:4000\r\nb=TIAS:4000000\r\n';
+
+        rest = rest.replace(/(a=fmtp:\d+\s+[^\r\n]+)/g, (match) => {
+          if (!match.includes('x-google-max-bitrate')) {
+            return match + ';x-google-min-bitrate=1500;x-google-start-bitrate=2500;x-google-max-bitrate=4000';
+          }
+          return match;
+        });
+
+        sdp = parts[0] + 'm=video' + header + bw + rest;
+      }
+    }
+  } catch (err) {
+    console.debug('SDP optimization note:', err);
+  }
 
   return sdp;
 }
@@ -985,7 +1104,12 @@ function tunePeerSenders(pc) {
   if (!pc || !pc.getSenders) return;
 
   const total = AppState.peerCalls.size + 1;
-  const maxVideoBitrate = total >= 4 ? 800000 : 2500000;
+  let maxVideoBitrate = 4000000;
+  if (total >= 4) {
+    maxVideoBitrate = 1600000;
+  } else if (total === 3) {
+    maxVideoBitrate = 2800000;
+  }
 
   pc.getSenders().forEach((sender) => {
     if (sender.track && sender.track.kind === 'video') {
@@ -995,6 +1119,11 @@ function tunePeerSenders(pc) {
           params.encodings = [{}];
         }
         params.encodings[0].maxBitrate = maxVideoBitrate;
+        params.encodings[0].scaleResolutionDownBy = 1.0;
+        if ('networkPriority' in params.encodings[0]) {
+          params.encodings[0].networkPriority = 'high';
+        }
+        params.degradationPreference = 'maintain-resolution';
         sender.setParameters(params).catch(() => {});
       } catch (err) {}
     }
@@ -1396,22 +1525,40 @@ async function toggleCamera() {
 
     if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
       try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: AppState.facingMode || 'user' },
-          audio: false
-        });
+        const constraints = getVideoConstraintsForPreset(AppState.videoQualityPreset || '1080p', AppState.facingMode || 'user');
+        let newStream = null;
+        try {
+          newStream = await navigator.mediaDevices.getUserMedia({
+            video: constraints,
+            audio: false
+          });
+        } catch (e1) {
+          newStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: AppState.facingMode || 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+          });
+        }
         const newTrack = newStream.getVideoTracks()[0];
         if (newTrack) {
+          await enhanceCameraTrackSettings(newTrack);
           AppState.localStream.addTrack(newTrack);
-          if (UI.localVideo) UI.localVideo.srcObject = AppState.localStream;
+          if (UI.localVideo) {
+            UI.localVideo.srcObject = AppState.localStream;
+            UI.localVideo.play().catch(() => {});
+          }
           
           AppState.peerCalls.forEach((call) => {
             try {
               const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-              if (sender) sender.replaceTrack(newTrack).catch(() => {});
+              if (sender) {
+                sender.replaceTrack(newTrack).then(() => {
+                  tunePeerSenders(call.peerConnection);
+                }).catch(() => {});
+              }
             } catch (e) {}
           });
           videoTracks = [newTrack];
+          updateCameraStatsUI();
         }
       } catch (e) {}
     }
@@ -1431,7 +1578,8 @@ async function toggleCamera() {
         UI.waitingLocalPreview.style.display = 'block';
         UI.waitingLocalPreview.play().catch(() => {});
       }
-      showToast('Camera turned on');
+      updateCameraStatsUI();
+      showToast('Camera turned on (HD)');
     } else {
       if (UI.btnCam) UI.btnCam.className = 'ctrl-btn inactive-state';
       if (UI.iconCamOn) UI.iconCamOn.style.display = 'none';
@@ -1460,13 +1608,23 @@ async function flipCamera(event) {
   showToast('Switching camera...');
 
   try {
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: targetFacing } },
-      audio: false
-    });
+    const constraints = getVideoConstraintsForPreset(AppState.videoQualityPreset || '1080p', targetFacing);
+    let newStream = null;
+    try {
+      newStream = await navigator.mediaDevices.getUserMedia({
+        video: constraints,
+        audio: false
+      });
+    } catch (e1) {
+      newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: targetFacing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+    }
     const newVideoTrack = newStream.getVideoTracks()[0];
     if (!newVideoTrack) throw new Error('No video track returned');
 
+    await enhanceCameraTrackSettings(newVideoTrack);
     newVideoTrack.enabled = !AppState.isCameraMuted;
 
     if (AppState.localStream) {
@@ -1489,11 +1647,16 @@ async function flipCamera(event) {
     AppState.peerCalls.forEach((call) => {
       try {
         const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
-        if (sender) sender.replaceTrack(newVideoTrack).catch(() => {});
+        if (sender) {
+          sender.replaceTrack(newVideoTrack).then(() => {
+            tunePeerSenders(call.peerConnection);
+          }).catch(() => {});
+        }
       } catch (e) {}
     });
 
-    showToast(`Switched to ${targetFacing === 'environment' ? 'rear' : 'front'} camera`);
+    updateCameraStatsUI();
+    showToast(`Switched to ${targetFacing === 'environment' ? 'rear' : 'front'} camera (HD)`);
   } catch (err) {
     showToast('Camera switch: ' + (err.name || 'Unavailable'));
   } finally {
@@ -1887,6 +2050,7 @@ function exitCallToHero(cleanHash = true) {
   closeLeaveModal();
   closeShareModal();
   closeRoomNotFoundModal();
+  closeVideoQualityModal();
 
   AppState.currentRoomId = null;
   if (cleanHash) {
@@ -1904,6 +2068,7 @@ function showHeroView() {
   UI.heroView.style.display = 'flex';
   UI.callView.style.display = 'none';
   if (UI.roomInfoPill) UI.roomInfoPill.style.display = 'none';
+  if (UI.headerQualityPill) UI.headerQualityPill.style.display = 'none';
   if (UI.participantsPill) UI.participantsPill.style.display = 'none';
   if (UI.btnHeaderShare) UI.btnHeaderShare.style.display = 'none';
   if (UI.headerCallTimer) UI.headerCallTimer.style.display = 'none';
@@ -1914,11 +2079,180 @@ function showCallView() {
   UI.heroView.style.display = 'none';
   UI.callView.style.display = 'flex';
   if (UI.roomInfoPill) UI.roomInfoPill.style.display = 'inline-flex';
+  if (UI.headerQualityPill) UI.headerQualityPill.style.display = 'inline-flex';
   if (UI.participantsPill) UI.participantsPill.style.display = 'inline-flex';
   if (UI.btnHeaderShare) UI.btnHeaderShare.style.display = 'inline-flex';
   if (UI.headerCallTimer) UI.headerCallTimer.style.display = 'inline-flex';
 
+  applyInitialVideoEnhancement();
+  updateCameraStatsUI();
   toggleSidebar(false);
+}
+
+function applyInitialVideoEnhancement() {
+  const mode = AppState.videoEnhancementMode || 'clean';
+  const stage = UI.callStage || document.getElementById('call-stage');
+  if (stage) {
+    stage.classList.remove(
+      'video-enhanced-clean',
+      'video-enhanced-crisp',
+      'video-enhanced-studio',
+      'video-enhanced-warm',
+      'video-enhanced-none'
+    );
+    stage.classList.add(`video-enhanced-${mode}`);
+  }
+
+  const chips = document.querySelectorAll('.enhancement-chips .chip-item');
+  chips.forEach(chip => {
+    chip.classList.toggle('active', chip.getAttribute('data-filter') === mode);
+  });
+}
+
+function setVideoEnhancement(mode) {
+  AppState.videoEnhancementMode = mode;
+  localStorage.setItem('ghostcall_video_enhancement', mode);
+
+  const stage = UI.callStage || document.getElementById('call-stage');
+  if (stage) {
+    stage.classList.remove(
+      'video-enhanced-clean',
+      'video-enhanced-crisp',
+      'video-enhanced-studio',
+      'video-enhanced-warm',
+      'video-enhanced-none'
+    );
+    stage.classList.add(`video-enhanced-${mode}`);
+  }
+
+  const chips = document.querySelectorAll('.enhancement-chips .chip-item');
+  chips.forEach(chip => {
+    chip.classList.toggle('active', chip.getAttribute('data-filter') === mode);
+  });
+
+  const modeLabels = {
+    clean: 'Clean & Clear (Haze Removed)',
+    crisp: 'Ultra Crisp (High Detail)',
+    studio: 'Studio Bright (Optimized Lighting)',
+    warm: 'Warm Natural',
+    none: 'Original Raw Feed'
+  };
+
+  showToast(`Video style: ${modeLabels[mode] || mode}`);
+  updateCameraStatsUI();
+}
+
+async function changeResolutionPreset(preset) {
+  AppState.videoQualityPreset = preset;
+  localStorage.setItem('ghostcall_video_resolution', preset);
+
+  if (AppState.isCallActive && AppState.localStream && !AppState.isCameraMuted && !AppState.isSharingScreen) {
+    showToast(`Applying ${preset.toUpperCase()} video quality...`);
+    try {
+      const constraints = getVideoConstraintsForPreset(preset, AppState.facingMode || 'user');
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: constraints,
+        audio: false
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      if (newVideoTrack) {
+        await enhanceCameraTrackSettings(newVideoTrack);
+
+        const oldTracks = AppState.localStream.getVideoTracks();
+        oldTracks.forEach(t => {
+          try { AppState.localStream.removeTrack(t); t.stop(); } catch (e) {}
+        });
+        AppState.localStream.addTrack(newVideoTrack);
+
+        if (UI.localVideo) {
+          UI.localVideo.srcObject = AppState.localStream;
+          UI.localVideo.play().catch(() => {});
+        }
+
+        AppState.peerCalls.forEach((call) => {
+          try {
+            const sender = call.peerConnection?.getSenders()?.find(s => (s.track && s.track.kind === 'video') || s.track === null);
+            if (sender) {
+              sender.replaceTrack(newVideoTrack).then(() => {
+                tunePeerSenders(call.peerConnection);
+              }).catch(() => {});
+            }
+          } catch (e) {}
+        });
+
+        updateCameraStatsUI();
+        showToast(`Camera switched to ${preset.toUpperCase()} quality`);
+      }
+    } catch (err) {
+      showToast('Resolution change note: ' + (err.message || 'Standard resolution active'));
+    }
+  } else {
+    showToast(`Quality preset: ${preset.toUpperCase()}`);
+    updateCameraStatsUI();
+  }
+}
+
+function updateCameraStatsUI() {
+  if (!AppState.localStream) return;
+  const videoTrack = AppState.localStream.getVideoTracks()[0];
+  if (!videoTrack) return;
+
+  const settings = (typeof videoTrack.getSettings === 'function') ? videoTrack.getSettings() : {};
+  const width = settings.width || (UI.localVideo ? UI.localVideo.videoWidth : 0) || 1920;
+  const height = settings.height || (UI.localVideo ? UI.localVideo.videoHeight : 0) || 1080;
+  const fps = Math.round(settings.frameRate || 30);
+  const label = videoTrack.label || 'Webcam / HD Camera';
+
+  let pillText = '1080p Clean';
+  if (height >= 1080 || width >= 1920) {
+    pillText = '1080p Clean';
+  } else if (height >= 720 || width >= 1280) {
+    pillText = '720p HD';
+  } else {
+    pillText = `${height}p Clean`;
+  }
+
+  const pillLabel = UI.qualityPillLabel || document.getElementById('quality-pill-label');
+  if (pillLabel) pillLabel.textContent = pillText;
+
+  const camDevice = document.getElementById('cam-device-name');
+  if (camDevice) camDevice.textContent = label.length > 28 ? label.slice(0, 26) + '...' : label;
+
+  const camLiveRes = document.getElementById('cam-live-res');
+  if (camLiveRes) camLiveRes.textContent = `${width} × ${height} (${height}p @ ${fps}fps)`;
+
+  const camLiveBitrate = document.getElementById('cam-live-bitrate');
+  if (camLiveBitrate) {
+    const total = AppState.peerCalls ? AppState.peerCalls.size + 1 : 1;
+    const bitrateText = total >= 4 ? '1.6 Mbps (Group HD)' : (total === 3 ? '2.8 Mbps (Multi HD)' : '4.0 Mbps (Ultra-Clear)');
+    camLiveBitrate.textContent = bitrateText;
+  }
+}
+
+function openVideoQualityModal() {
+  if (!UI.modalVideoQuality) UI.modalVideoQuality = document.getElementById('modal-video-quality');
+  if (UI.modalVideoQuality) {
+    updateCameraStatsUI();
+
+    const currentMode = AppState.videoEnhancementMode || 'clean';
+    const chips = document.querySelectorAll('.enhancement-chips .chip-item');
+    chips.forEach(chip => {
+      chip.classList.toggle('active', chip.getAttribute('data-filter') === currentMode);
+    });
+
+    const currentPreset = AppState.videoQualityPreset || '1080p';
+    const radio = document.querySelector(`input[name="res-preset"][value="${currentPreset}"]`);
+    if (radio) radio.checked = true;
+
+    UI.modalVideoQuality.style.display = 'flex';
+  }
+}
+
+function closeVideoQualityModal() {
+  if (!UI.modalVideoQuality) UI.modalVideoQuality = document.getElementById('modal-video-quality');
+  if (UI.modalVideoQuality) {
+    UI.modalVideoQuality.style.display = 'none';
+  }
 }
 
 function handleBrandClick() {
@@ -2159,6 +2493,7 @@ function initGlobalKeyboardShortcuts() {
       closeRoomNotFoundModal();
       closeLeaveModal();
       closeShareModal();
+      closeVideoQualityModal();
       return;
     }
 
@@ -2171,6 +2506,13 @@ function initGlobalKeyboardShortcuts() {
     } else if (key === 'v') {
       e.preventDefault();
       toggleCamera();
+    } else if (key === 'q') {
+      e.preventDefault();
+      if (UI.modalVideoQuality && UI.modalVideoQuality.style.display === 'flex') {
+        closeVideoQualityModal();
+      } else {
+        openVideoQualityModal();
+      }
     } else if (key === 's') {
       e.preventDefault();
       toggleScreenShare();

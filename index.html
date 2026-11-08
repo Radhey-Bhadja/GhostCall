@@ -47,6 +47,11 @@
         </svg>
       </button>
 
+      <button class="header-pill hd-quality-pill" id="header-quality-pill" style="display: none;" title="Camera Quality & Clean Video (Click to customize)" onclick="openVideoQualityModal()">
+        <span class="hd-badge-tag">HD</span>
+        <span id="quality-pill-label">1080p Clean</span>
+      </button>
+
       <div class="header-timer" id="header-call-timer" style="display: none;" title="Call duration">
         <span class="timer-dot"></span>
         <span id="call-duration-text">00:00</span>
@@ -329,6 +334,12 @@
             </svg>
           </button>
 
+          <button class="ctrl-btn active-state" id="btn-video-quality" onclick="openVideoQualityModal()" title="Camera & Video Quality (Q)" aria-label="Camera Quality Settings">
+            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </button>
+
           <button class="ctrl-btn" id="btn-screen" onclick="toggleScreenShare()" title="Share Screen (S)" aria-label="Share Screen">
             <svg class="ctrl-icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
@@ -362,6 +373,137 @@
       </footer>
     </div>
   </section>
+
+  <div id="modal-video-quality" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+    <div class="modal-box quality-modal-box">
+      <div class="modal-header-simple">
+        <div class="quality-modal-header-title">
+          <div class="quality-icon-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M15 10l5-4v12l-5-4z"/>
+              <rect x="2" y="6" width="13" height="12" rx="2"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Camera & Video Quality</h3>
+            <p class="quality-modal-sub">Crystal-clear HD WebRTC video settings</p>
+          </div>
+        </div>
+        <button class="btn-close-sm" onclick="closeVideoQualityModal()" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Live Camera Status Card -->
+      <div class="quality-status-card">
+        <div class="quality-status-row">
+          <span class="status-label">Active Camera:</span>
+          <span class="status-val" id="cam-device-name">Detecting camera...</span>
+        </div>
+        <div class="quality-status-row">
+          <span class="status-label">Live Resolution:</span>
+          <span class="status-val highlight" id="cam-live-res">1920 × 1080 (1080p FHD)</span>
+        </div>
+        <div class="quality-status-row">
+          <span class="status-label">Target Bitrate:</span>
+          <span class="status-val" id="cam-live-bitrate">4.0 Mbps (Ultra-Clear)</span>
+        </div>
+        <div class="quality-status-row">
+          <span class="status-label">Hardware Clarity:</span>
+          <span class="status-val tag-active" id="cam-hw-accel">Active • Continuous Auto-Focus</span>
+        </div>
+      </div>
+
+      <!-- Video Enhancement Filter -->
+      <div class="quality-section">
+        <label class="quality-section-label">
+          <span>Clean Video Enhancement</span>
+          <span class="label-hint">Live clarity & color tuning</span>
+        </label>
+        <div class="enhancement-chips">
+          <button type="button" class="chip-item active" data-filter="clean" onclick="setVideoEnhancement('clean')">
+            <span class="chip-emoji">✨</span>
+            <div class="chip-texts">
+              <strong>Clean & Clear</strong>
+              <small>Removes haze, sharp & vibrant</small>
+            </div>
+          </button>
+          <button type="button" class="chip-item" data-filter="crisp" onclick="setVideoEnhancement('crisp')">
+            <span class="chip-emoji">💎</span>
+            <div class="chip-texts">
+              <strong>Ultra Crisp</strong>
+              <small>High contrast & edge detail</small>
+            </div>
+          </button>
+          <button type="button" class="chip-item" data-filter="studio" onclick="setVideoEnhancement('studio')">
+            <span class="chip-emoji">💡</span>
+            <div class="chip-texts">
+              <strong>Studio Bright</strong>
+              <small>Optimized for dim lighting</small>
+            </div>
+          </button>
+          <button type="button" class="chip-item" data-filter="warm" onclick="setVideoEnhancement('warm')">
+            <span class="chip-emoji">🌸</span>
+            <div class="chip-texts">
+              <strong>Warm Natural</strong>
+              <small>Gentle, warm skin tones</small>
+            </div>
+          </button>
+          <button type="button" class="chip-item" data-filter="none" onclick="setVideoEnhancement('none')">
+            <span class="chip-emoji">⚪</span>
+            <div class="chip-texts">
+              <strong>Original Raw</strong>
+              <small>No color processing</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resolution Presets -->
+      <div class="quality-section">
+        <label class="quality-section-label">
+          <span>Camera Resolution</span>
+          <span class="label-hint">WebRTC sensor stream quality</span>
+        </label>
+        <div class="resolution-options">
+          <label class="res-option-card">
+            <input type="radio" name="res-preset" value="1080p" onchange="changeResolutionPreset('1080p')" />
+            <div class="res-card-content">
+              <div class="res-title-row">
+                <span class="res-name">1080p Full HD</span>
+                <span class="res-badge best">Recommended</span>
+              </div>
+              <span class="res-desc">1920×1080 • Crisp detail, 4.0 Mbps stream</span>
+            </div>
+          </label>
+
+          <label class="res-option-card">
+            <input type="radio" name="res-preset" value="720p" onchange="changeResolutionPreset('720p')" />
+            <div class="res-card-content">
+              <div class="res-title-row">
+                <span class="res-name">720p HD</span>
+                <span class="res-badge">Balanced</span>
+              </div>
+              <span class="res-desc">1280×720 • Smooth, 2.8 Mbps stream</span>
+            </div>
+          </label>
+
+          <label class="res-option-card">
+            <input type="radio" name="res-preset" value="480p" onchange="changeResolutionPreset('480p')" />
+            <div class="res-card-content">
+              <div class="res-title-row">
+                <span class="res-name">480p SD</span>
+                <span class="res-badge saver">Data Saver</span>
+              </div>
+              <span class="res-desc">854×480 • Low data usage, 1.0 Mbps stream</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn btn-wa-green" onclick="closeVideoQualityModal()" style="width: 100%;">Done</button>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-leave" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true">
     <div class="modal-box">
